@@ -44,3 +44,22 @@ Next hypothesis: recover stock pmsg-ramoops after temporary boot to establish pe
 Packaging script inspected: recreates ~/asteroids-firstboot, generates boot and init_boot files, never flashes. Back up that output before invoking. Only boot.img is used for testing; built-in initramfs supplies /init.
 
 Recovery safety finding: ~/asteroids-recover-and-pstore.sh contains `fastboot set_active a`; NEVER execute it under this task. Read pstore directly when stock ADB is available.
+
+## probe-01 recovery
+
+User observed Nothing logo and used established button reset. Rooted stock ADB recovered.
+Stock kernel: 6.1.157-android14-11-g82d681c9b06b-ab14634535.
+Recovered pmsg (6800 bytes) SHA256: 5d015de7283d4c6cbde9b6678b184bfa894a754670819331f2044e4f9294ad27.
+Recovered console (2097136 bytes) SHA256: 8a09eacc7871b2c6f345e0a7605e270faef574cffba77ff98b9fa0cca229b99b.
+Neither file contains ASTEROIDS or exec markers. Raw logs retained locally, excluded from commits because stock logs include personal information.
+Stock live parameters confirm base 0x81f20000, size 4MiB, console/pmsg each 2MiB, ECC=0, record/ftrace=0, mem_type=0.
+Conclusion: persistence unproven; absence does not prove ramoops_probe was never reached.
+
+## probe-02
+
+Hypothesis: match known stock mem_type=0 (write-combining/Normal noncached mapping) instead of 2. ram_core's non-RAM iomap branch treats any nonzero type as ioremap Device memory. This is a mapping discrepancy, not yet a demonstrated failure cause.
+Change: only ramoops DT memory type and experiment marker; add direct pstore_register return marker. Preserve addresses, sizes, initramfs and all other hardware settings.
+Backups: bringup/probe-02/*.before.
+Build/source commit and boot.img hash: pending.
+Result: pending.
+Next: temporary boot and recover pmsg using rooted stock ADB after user's manual reset.

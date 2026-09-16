@@ -800,7 +800,7 @@ static int ramoops_probe(struct platform_device *pdev)
 	/* Temporary Asteroids probe evidence, independent of printk/pstore. */
 	if (cxt->cprz && cxt->phys_addr == 0x82120000) {
 		static const char marker[] =
-			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-01\n";
+			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-02\n";
 
 		persistent_ram_write(cxt->cprz, marker, sizeof(marker) - 1);
 	}
@@ -856,6 +856,15 @@ static int ramoops_probe(struct platform_device *pdev)
 	}
 
 	err = pstore_register(&cxt->pstore);
+	if (cxt->cprz && cxt->phys_addr == 0x82120000) {
+		char marker[96];
+		int len;
+
+		len = scnprintf(marker, sizeof(marker),
+				"ASTEROIDS PSTORE REGISTER ret=%d experiment=probe-02\n",
+				err);
+		persistent_ram_write(cxt->cprz, marker, len);
+	}
 	if (err) {
 		pr_err("registering with pstore failed\n");
 		goto fail_buf;

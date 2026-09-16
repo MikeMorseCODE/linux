@@ -123,7 +123,7 @@ pmiv0104 @7 +-
 			compatible = "ramoops";
 			reg = <0x0 0x82120000 0x0 0x00200000>;
 			console-size = <0x00200000>;
-			mem-type = <0x02>;
+			mem-type = <0x00>;
 			no-map;
 		};
 
