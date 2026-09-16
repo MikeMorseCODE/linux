@@ -1,0 +1,358 @@
+diff --git a/arch/arm64/boot/dts/qcom/sm7635-nothing-asteroids.dts b/arch/arm64/boot/dts/qcom/sm7635-nothing-asteroids.dts
+index e57e17cc263f..b4767d64d87b 100644
+--- a/arch/arm64/boot/dts/qcom/sm7635-nothing-asteroids.dts
++++ b/arch/arm64/boot/dts/qcom/sm7635-nothing-asteroids.dts
+@@ -24,7 +24,7 @@ pmk8550 @0 +
+ pmxr2230 @1
+ pm8550vs @2 +
+ pmr735b @5 +
+-pmiv0104 @8 +-
++pmiv0104 @7 +-
+ */
+ 
+ /* Decrease the region */
+@@ -62,7 +62,7 @@ chosen {
+ 		ranges;
+ 
+ 		stdout-path = "serial0:115200n8";
+-		bootargs = "earlycon clk_ignore_unused pd_ignore_unused regulator_ignore_unused";
++		bootargs = "earlycon=qcom_geni,0xa94000 console=ttyMSM0,115200n8 ignore_loglevel loglevel=8 clk_ignore_unused pd_ignore_unused regulator_ignore_unused panic=5";
+ 
+ 		framebuffer: framebuffer@e1000000 {
+ 			compatible = "simple-framebuffer";
+@@ -104,17 +104,27 @@ reserved-memory {
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+ 		ranges;
++		/*
++		 * Preserve stock console half separately.
++		 *
++		 * Stock layout:
++		 *   0x81f20000 + 2 MiB console
++		 *   0x82120000 + 2 MiB pmsg
++		 *
++		 * Asteroids intentionally uses the stock pmsg half as
++		 * its console so stock can recover it as pmsg-ramoops.
++		 */
++		ramoops_stock_console_guard@81f20000 {
++			reg = <0x0 0x81f20000 0x0 0x00200000>;
++			no-map;
++		};
+ 
+-		ramoops_mem@81f20000 {
++		ramoops_mem@82120000 {
+ 			compatible = "ramoops";
+-			size = <0x400000>;
+-			pmsg-size = <0x200000>;
++			reg = <0x0 0x82120000 0x0 0x00200000>;
++			console-size = <0x00200000>;
+ 			mem-type = <0x02>;
+-			linux,reserve-contiguous-region;
+-			linux,reserve-region;
+-			linux,remove-completely;
+-			reg = <0x0 0x81f20000 0x0 0x400000>;
+-			console-size = <0x200000>;
++			no-map;
+ 		};
+ 
+ 		splash_region@e3940000 {
+@@ -177,6 +187,20 @@ vreg_l4b_1p2: ldo4 {
+ 			regulator-max-microvolt = <1200000>;
+ 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+ 		};
++
++		vreg_l7b_1p8: ldo7 {
++			regulator-name = "vreg_l7b_1p8";
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l17b_3p104: ldo17 {
++			regulator-name = "vreg_l17b_3p104";
++			regulator-min-microvolt = <3104000>;
++			regulator-max-microvolt = <3104000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
+ 	};
+ };
+ 
+@@ -193,7 +217,7 @@ &gcc {
+ 			   <GCC_PCIE_1_PIPE_DIV2_CLK_SRC>,
+ 			   <GCC_PCIE_1_SLV_AXI_CLK>,
+ 			   <GCC_PCIE_1_SLV_Q2A_AXI_CLK>;
+-	status = "disabled";
++	status = "okay";
+ };
+ 
+ &camcc { status = "disabled"; };
+@@ -237,7 +261,10 @@ kypd_volp_n: kypd-volp-n-state {
+ 	};
+ };
+ 
+-&qupv3_id_0 { };
++&pmiv0104_eusb2_repeater {
++	vdd18-supply = <&vreg_l7b_1p8>;
++	vdd3-supply = <&vreg_l17b_3p104>;
++};
+ 
+ &qupv3_id_1 { };
+ 
+@@ -251,7 +278,7 @@ &tlmm {
+ 	 * 63-64: Fingerprint reader (SPI)
+ 	 */
+ 	gpio-reserved-ranges = <13 1>, <63 2>;
+-	status = "disabled";
++	status = "okay";
+ 
+ 	/*
+ 		GPIO24 - cam_tele_ois
+@@ -268,8 +295,6 @@ ai_key_default: ai-key-default-state {
+ 	};
+ };
+ 
+-&uart5 { };
+-
+ &uart11 {
+ 	/delete-property/ interrupts;
+ 	interrupts-extended = <&intc GIC_SPI 586 IRQ_TYPE_LEVEL_HIGH>,
+@@ -279,12 +304,13 @@ &uart11 {
+ };
+ 
+ &usb_1 {
++	qcom,select-utmi-as-pipe-clk;
+ 	status = "okay";
+ };
+ 
+ &usb_1_dwc3 {
+-	dr_mode = "otg";
+-	usb-role-switch;
++	dr_mode = "peripheral";
++	maximum-speed = "high-speed";
+ };
+ 
+ &usb_1_hsphy {
+@@ -299,3 +325,30 @@ &usb_1_hsphy {
+ &xo_board {
+ 	clock-frequency = <76800000>;
+ };
++
++/* First-boot debug UART */
++&qupv3_id_0 {
++	status = "okay";
++};
++
++&uart5 {
++	compatible = "qcom,geni-debug-uart", "qcom,geni-uart";
++	status = "okay";
++};
++
++/* ASTEROIDS STOCK MEMORY MAP */
++&{/memory@80000000} {
++	reg = <0x0 0x80e00000 0x0 0x00a00000>,
++	      <0x0 0x81cf5000 0x0 0x0000a000>,
++	      <0x0 0x82320000 0x0 0x00180000>,
++	      <0x0 0xeea00000 0x0 0x11600000>,
++	      <0x8 0x80000000 0x0 0x2f8fe000>,
++	      <0x8 0xb0000000 0x0 0x07700000>,
++	      <0x9 0x80000000 0x1 0x80000000>,
++	      <0x8 0xbf800000 0x0 0xc0800000>,
++	      <0x0 0x82800000 0x0 0x08400000>,
++	      <0x0 0x9ea9c000 0x0 0x00064000>,
++	      <0x0 0x9f300000 0x0 0x07100000>,
++	      <0x0 0xa7000000 0x0 0x39600000>,
++	      <0x0 0xe0a00000 0x0 0x07f00000>;
++};
+diff --git a/arch/arm64/boot/dts/qcom/sm7635-pmics.dtsi b/arch/arm64/boot/dts/qcom/sm7635-pmics.dtsi
+index 67f4325a21eb..0093ec0bc820 100644
+--- a/arch/arm64/boot/dts/qcom/sm7635-pmics.dtsi
++++ b/arch/arm64/boot/dts/qcom/sm7635-pmics.dtsi
+@@ -25,9 +25,9 @@ pmxr2230_gpios: gpio@8800 {
+ 		};
+ 	};
+ 
+-	pmiv0104_8: pmic@8 {
++	pmiv0104_7: pmic@7 {
+ 		compatible = "qcom,pm8550", "qcom,spmi-pmic";
+-		reg = <0x8 SPMI_USID>;
++		reg = <0x7 SPMI_USID>;
+ 		#address-cells = <1>;
+ 		#size-cells = <0>;
+ 
+diff --git a/drivers/regulator/qcom-rpmh-regulator.c b/drivers/regulator/qcom-rpmh-regulator.c
+index 9ed93c1791f4..7994bebc2119 100644
+--- a/drivers/regulator/qcom-rpmh-regulator.c
++++ b/drivers/regulator/qcom-rpmh-regulator.c
+@@ -1464,7 +1464,7 @@ static const struct rpmh_vreg_init_data pm7325_vreg_data[] = {
+ 
+ static const struct rpmh_vreg_init_data pm7550_vreg_data[] = {
+ 	RPMH_VREG("ldo1",   "ldo%s1",  &pmic5_nldo, "vdd_l1"),
+-	RPMH_VREG("ldo2",   "ldo%s2",  &pmic5_pldo, "vdd_l2_l3"),
++	RPMH_VREG("ldo2",   "ldo%s2",  &pmic5_nldo, "vdd_l2_l3"),
+ 	RPMH_VREG("ldo3",   "ldo%s3",  &pmic5_nldo, "vdd_l2_l3"),
+ 	RPMH_VREG("ldo4",   "ldo%s4",  &pmic5_nldo, "vdd_l4_l5"),
+ 	RPMH_VREG("ldo5",   "ldo%s5",  &pmic5_nldo, "vdd_l4_l5"),
+@@ -1479,7 +1479,7 @@ static const struct rpmh_vreg_init_data pm7550_vreg_data[] = {
+ 	RPMH_VREG("ldo14",  "ldo%s14", &pmic5_nldo, "vdd_l12_l14"),
+ 	RPMH_VREG("ldo15",  "ldo%s15", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
+ 	RPMH_VREG("ldo16",  "ldo%s16", &pmic5_nldo, "vdd_l13_l16"),
+-	RPMH_VREG("ldo17",  "ldo%s17", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
++	RPMH_VREG("ldo17",  "ldo%s17", &pmic5_pldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
+ 	RPMH_VREG("ldo18",  "ldo%s18", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
+ 	RPMH_VREG("ldo19",  "ldo%s19", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
+ 	RPMH_VREG("ldo20",  "ldo%s20", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 584fa89bc877..68c4d73a42c5 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -823,6 +823,7 @@ static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
+ 
+ static int load_elf_binary(struct linux_binprm *bprm)
+ {
++	pr_emerg("ASTEROIDS EXEC: load_elf_binary ENTER\n");
+ 	struct file *interpreter = NULL; /* to shut gcc up */
+ 	unsigned long load_bias = 0, phdr_addr = 0;
+ 	int first_pt_load = 1;
+@@ -998,7 +999,9 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 		goto out_free_dentry;
+ 
+ 	/* Flush all traces of the currently running executable */
++	pr_emerg("ASTEROIDS EXEC: before begin_new_exec\n");
+ 	retval = begin_new_exec(bprm);
++	pr_emerg("ASTEROIDS EXEC: after begin_new_exec ret=%d\n", retval);
+ 	if (retval)
+ 		goto out_free_dentry;
+ 
+@@ -1016,8 +1019,11 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 
+ 	/* Do this so that we can load the interpreter, if need be.  We will
+ 	   change some of these later */
++	pr_emerg("ASTEROIDS EXEC: before setup_arg_pages\n");
+ 	retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),
+ 				 executable_stack);
++	pr_emerg("ASTEROIDS EXEC: after setup_arg_pages ret=%d sp=%lx\n",
++		 retval, bprm->p);
+ 	if (retval < 0)
+ 		goto out_free_dentry;
+ 
+@@ -1279,8 +1285,12 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 		goto out;
+ #endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
+ 
++	pr_emerg("ASTEROIDS EXEC: before create_elf_tables entry=%lx\n",
++		 elf_entry);
+ 	retval = create_elf_tables(bprm, elf_ex, interp_load_addr,
+ 				   e_entry, phdr_addr);
++	pr_emerg("ASTEROIDS EXEC: after create_elf_tables ret=%d sp=%lx\n",
++		 retval, bprm->p);
+ 	if (retval < 0)
+ 		goto out;
+ 
+@@ -1342,8 +1352,14 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	ELF_PLAT_INIT(regs, reloc_func_desc);
+ #endif
+ 
++	pr_emerg("ASTEROIDS EXEC: BEFORE finalize_exec pc=%lx sp=%lx\n",
++		 elf_entry, bprm->p);
+ 	finalize_exec(bprm);
++	pr_emerg("ASTEROIDS EXEC: BEFORE START_THREAD pc=%lx sp=%lx\n",
++		 elf_entry, bprm->p);
+ 	START_THREAD(elf_ex, regs, elf_entry, bprm->p);
++	pr_emerg("ASTEROIDS EXEC: AFTER START_THREAD pc=%lx sp=%lx pstate=%lx\n",
++		 regs->pc, regs->sp, regs->pstate);
+ 	retval = 0;
+ out:
+ 	return retval;
+diff --git a/fs/exec.c b/fs/exec.c
+index 8e4ea5f1e64c..c10cc88465d3 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1761,6 +1761,8 @@ static int search_binary_handler(struct linux_binprm *bprm)
+ 	struct linux_binfmt *fmt;
+ 	int retval;
+ 
++	pr_emerg("ASTEROIDS EXEC: search_binary_handler ENTER\n");
++
+ 	retval = prepare_binprm(bprm);
+ 	if (retval < 0)
+ 		return retval;
+@@ -1775,7 +1777,11 @@ static int search_binary_handler(struct linux_binprm *bprm)
+ 			continue;
+ 		read_unlock(&binfmt_lock);
+ 
++		pr_emerg("ASTEROIDS EXEC: calling binfmt load_binary=%ps\n",
++			 fmt->load_binary);
+ 		retval = fmt->load_binary(bprm);
++		pr_emerg("ASTEROIDS EXEC: binfmt returned ret=%d pnr=%d\n",
++			 retval, bprm->point_of_no_return);
+ 
+ 		read_lock(&binfmt_lock);
+ 		put_binfmt(fmt);
+@@ -1839,6 +1845,8 @@ static int bprm_execve(struct linux_binprm *bprm)
+ {
+ 	int retval;
+ 
++	pr_emerg("ASTEROIDS EXEC: bprm_execve ENTER\n");
++
+ 	retval = prepare_bprm_creds(bprm);
+ 	if (retval)
+ 		return retval;
+@@ -1859,7 +1867,10 @@ static int bprm_execve(struct linux_binprm *bprm)
+ 	if (retval || bprm->is_check)
+ 		goto out;
+ 
++	pr_emerg("ASTEROIDS EXEC: before exec_binprm\n");
+ 	retval = exec_binprm(bprm);
++	pr_emerg("ASTEROIDS EXEC: after exec_binprm ret=%d pnr=%d\n",
++		 retval, bprm->point_of_no_return);
+ 	if (retval < 0)
+ 		goto out;
+ 
+@@ -1965,7 +1976,10 @@ static int do_execveat_common(int fd, struct filename *filename,
+ 			     current->comm, bprm->filename);
+ 	}
+ 
++	pr_emerg("ASTEROIDS EXEC: before bprm_execve argc=%d envc=%d\n",
++		 bprm->argc, bprm->envc);
+ 	retval = bprm_execve(bprm);
++	pr_emerg("ASTEROIDS EXEC: bprm_execve RETURNED ret=%d\n", retval);
+ out_free:
+ 	free_bprm(bprm);
+ 
+@@ -1977,6 +1991,8 @@ static int do_execveat_common(int fd, struct filename *filename,
+ int kernel_execve(const char *kernel_filename,
+ 		  const char *const *argv, const char *const *envp)
+ {
++	pr_emerg("ASTEROIDS EXEC: kernel_execve ENTER file=%s\n",
++		 kernel_filename);
+ 	struct filename *filename;
+ 	struct linux_binprm *bprm;
+ 	int fd = AT_FDCWD;
+@@ -1990,6 +2006,7 @@ int kernel_execve(const char *kernel_filename,
+ 	if (IS_ERR(filename))
+ 		return PTR_ERR(filename);
+ 
++	pr_emerg("ASTEROIDS EXEC: before alloc_bprm\n");
+ 	bprm = alloc_bprm(fd, filename, 0);
+ 	if (IS_ERR(bprm)) {
+ 		retval = PTR_ERR(bprm);
+diff --git a/init/main.c b/init/main.c
+index 6b14e6116a1f..927cda7f80f3 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -1377,6 +1377,7 @@ static void __init do_pre_smp_initcalls(void)
+ 		do_one_initcall(initcall_from_entry(fn));
+ }
+ 
++
+ static int run_init_process(const char *init_filename)
+ {
+ 	const char *const *p;
+@@ -1579,7 +1580,6 @@ static noinline void __init kernel_init_freeable(void)
+ 	page_alloc_init_late();
+ 
+ 	do_basic_setup();
+-
+ 	kunit_run_all_tests();
+ 
+ 	wait_for_initramfs();

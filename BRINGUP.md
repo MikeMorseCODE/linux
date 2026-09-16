@@ -30,10 +30,17 @@ Experiment: direct persistent_ram_write after successful console allocation, bef
 Scoped to non-null console at configured physical base 0x82120000. No panic, reboot, raw RAM writes, or additional driver changes.
 Existing exec printk markers retained. Successful pstore registration can capture subsequent exec markers; direct marker does not depend on registration.
 
-Build/source hash: pending checkpoint and build.
-Boot.img hash: pending packaging.
-Result: not yet tested.
-Conclusion: no new runtime claim.
+Build/source commit: 2b25c67acc1293f5c37579f28d24c0c397fbfa17.
+Image SHA256: 099d77cdadfa926e3d176b464f96b99d4cdaceec199b8b8a2f9bbf7829a5662c.
+DTB SHA256: bcb20efadd3bd28e078978ad9ea7b4c00a76794785e7494dae8685f4375c7416.
+Appended SHA256: 1ffe1b3a6986f537da86747e00f986c4f6de3bec118f882b64f1517bffe9f95b.
+Build passed without compiler warnings. Verified Image size equals ELF span (23068672), DTB magic exactly at that boundary, embedded initramfs unchanged, direct marker present in Image.
+Boot.img SHA256: 7efe82b12c86d31b8f26bcd920016d06d25e4d3a533343661ba72ebbf6db7c07.
+Specified packaging script passed all content comparisons. Previous output backed up to /home/morsecode/asteroids-firstboot-backups/probe-01-20260916-075104.
+Result: temporary fastboot boot completed: transfer OKAY (2.243 s), Booting OKAY (10.320 s), total 12.589 s. Phone disconnected from USB; no userspace or persistent marker yet observed. Awaiting stock pstore recovery.
+Conclusion: bootloader accepted candidate; no new proven kernel/EL0 stage.
 Next hypothesis: recover stock pmsg-ramoops after temporary boot to establish persistence and locate final exec marker. Absence alone cannot distinguish probe failure from retention/recovery incompatibility.
 
 Packaging script inspected: recreates ~/asteroids-firstboot, generates boot and init_boot files, never flashes. Back up that output before invoking. Only boot.img is used for testing; built-in initramfs supplies /init.
+
+Recovery safety finding: ~/asteroids-recover-and-pstore.sh contains `fastboot set_active a`; NEVER execute it under this task. Read pstore directly when stock ADB is available.

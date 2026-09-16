@@ -1,0 +1,144 @@
+===== INPUTS =====
+-rw-r--r-- 1 morsecode morsecode  23M Sep 16 07:51 /home/morsecode/android-kernel/out/sm7635-mainline/arch/arm64/boot/Image-appended-dtb.new
+-rw-r--r-- 1 morsecode morsecode  96M Aug 19 09:46 /home/morsecode/android-kernel/stock/B4.1-260810-1153/boot.img
+-rw-r--r-- 1 morsecode morsecode 8.0M Aug 19 09:46 /home/morsecode/android-kernel/stock/B4.1-260810-1153/init_boot.img
+-rw-r--r-- 1 morsecode morsecode  96M Aug 19 09:46 /home/morsecode/android-kernel/stock/B4.1-260810-1153/vendor_boot.img
+-rw-r--r-- 1 morsecode morsecode 270K Sep 15 01:06 /home/morsecode/asteroids-rescue-initramfs/asteroids-initramfs.cpio.gz
+
+===== INPUT HASHES =====
+1ffe1b3a6986f537da86747e00f986c4f6de3bec118f882b64f1517bffe9f95b  /home/morsecode/android-kernel/out/sm7635-mainline/arch/arm64/boot/Image-appended-dtb.new
+247b0a310b3b0185e8633b30f43267df042d0f3a31c73a6fc12e8644fa49fa49  /home/morsecode/asteroids-rescue-initramfs/asteroids-initramfs.cpio.gz
+
+===== BUILD RAW BOOT V4 =====
+
+===== BUILD RAW INIT_BOOT V4 =====
+
+===== RAW IMAGE INFO =====
+boot magic: ANDROID!
+kernel_size: 23114222
+ramdisk size: 0
+os version: None
+os patch level: None
+boot image header version: 4
+command line args: 
+boot.img signature size: 0
+
+boot magic: ANDROID!
+kernel_size: 0
+ramdisk size: 276361
+os version: None
+os patch level: None
+boot image header version: 4
+command line args: 
+boot.img signature size: 0
+
+===== VERIFY KERNEL BYTE-FOR-BYTE =====
+PASS: packaged boot kernel matches candidate
+
+===== VERIFY INIT_BOOT RAMDISK BYTE-FOR-BYTE =====
+PASS: packaged init_boot ramdisk matches candidate
+
+===== ADD UNSIGNED AVB HASH FOOTERS =====
+
+===== FINAL SIZES =====
+-rw-r--r-- 1 morsecode morsecode  96M Sep 16 07:51 /home/morsecode/asteroids-firstboot/asteroids-boot.img
+-rw-r--r-- 1 morsecode morsecode 8.0M Sep 16 07:51 /home/morsecode/asteroids-firstboot/asteroids-init_boot.img
+PASS: both images exactly match stock partition sizes
+
+===== FINAL AVB =====
+
+--- boot ---
+Footer version:           1.0
+Image size:               100663296 bytes
+Original image size:      23121920 bytes
+VBMeta offset:            23121920
+VBMeta size:              512 bytes
+--
+Minimum libavb version:   1.0
+Header Block:             256 bytes
+Authentication Block:     0 bytes
+Auxiliary Block:          256 bytes
+Algorithm:                NONE
+Rollback Index:           0
+Flags:                    0
+Rollback Index Location:  0
+Release String:           'avbtool 1.4.0'
+Descriptors:
+    Hash descriptor:
+      Image Size:            23121920 bytes
+      Hash Algorithm:        sha256
+      Partition Name:        boot
+      Salt:                  42935ce47418e6ede3391f265f318183a679f62be6e9e4e99dd43a20bd4c4e12
+      Digest:                11eaa4a9e61e9b2cfbabb720b1cac0f358e5d75342c71e25dde305045d61cc00
+      Flags:                 0
+
+--- init_boot ---
+Footer version:           1.0
+Image size:               8388608 bytes
+Original image size:      282624 bytes
+VBMeta offset:            282624
+VBMeta size:              512 bytes
+--
+Minimum libavb version:   1.0
+Header Block:             256 bytes
+Authentication Block:     0 bytes
+Auxiliary Block:          256 bytes
+Algorithm:                NONE
+Rollback Index:           0
+Flags:                    0
+Rollback Index Location:  0
+Release String:           'avbtool 1.4.0'
+Descriptors:
+    Hash descriptor:
+      Image Size:            282624 bytes
+      Hash Algorithm:        sha256
+      Partition Name:        init_boot
+      Salt:                  1615831b8ea3d85f42f27342a05877942fae2f9af64ac93597175a060bede145
+      Digest:                5001d32d39672316305691cbb70fb5a9e1113753b21c81da9d39c6ecb9bed899
+      Flags:                 0
+
+===== FINAL UNPACK =====
+boot magic: ANDROID!
+kernel_size: 23114222
+ramdisk size: 0
+os version: None
+os patch level: None
+boot image header version: 4
+command line args: 
+boot.img signature size: 0
+boot magic: ANDROID!
+kernel_size: 0
+ramdisk size: 276361
+os version: None
+os patch level: None
+boot image header version: 4
+command line args: 
+boot.img signature size: 0
+
+===== FINAL CONTENT VERIFICATION =====
+PASS: final AVB boot contains exact mainline kernel
+PASS: final AVB init_boot contains exact rescue ramdisk
+
+===== HASHES =====
+7efe82b12c86d31b8f26bcd920016d06d25e4d3a533343661ba72ebbf6db7c07  /home/morsecode/asteroids-firstboot/asteroids-boot.img
+0d6c7f04b46312a2d751d1fe3101a0fc591890e5d5cdc89da744d27ccf30b0fd  /home/morsecode/asteroids-firstboot/asteroids-init_boot.img
+c47aebed9dcf0337a7398dd2d741b5af751f4f1ef5a5354877a912431929b4d9  /home/morsecode/android-kernel/stock/B4.1-260810-1153/vendor_boot.img
+
+===== COMPLETE =====
+ASTEROIDS MAINLINE FIRST-BOOT CANDIDATE
+
+boot:
+/home/morsecode/asteroids-firstboot/asteroids-boot.img
+
+init_boot:
+/home/morsecode/asteroids-firstboot/asteroids-init_boot.img
+
+vendor_boot:
+UNCHANGED STOCK
+/home/morsecode/android-kernel/stock/B4.1-260810-1153/vendor_boot.img
+
+IMPORTANT:
+- Intended only for an UNLOCKED bootloader.
+- boot.img AVB signature is NOT Nothing's production RSA signature.
+- DO NOT relock the bootloader with these images.
+- Keep known-good stock boot/init_boot available for recovery.
