@@ -106,5 +106,8 @@ Conclusion: reset retains much of the data but introduces bit corruption. Late-b
 Narrow earliest entry: aligned MMU-off stores into known stock console reservation, before and after preserve_boot_args/appended-FDT selection. Record ASTEROIDS probe-04 ENTRY with stage 00 or 01 and DBGC header; later independent kernel_init checkpoints replace it if reached. Ramoops upper-half test unchanged except experiment ID.
 Entry probe skips writes if record_mmu_state reports MMU on; absence would remain ambiguous in that case. Uses only x9/x10; preserves boot arguments and x19/x21 state. No loops, panic, or forced restart.
 Source backups in bringup/probe-04. Stock recovery already tested; use approximate matching because of bit flips.
-Build/source hash, boot.img hash and result: pending.
+Build/source commit: a8f0fee4886eed2db5184d9e7f7430c0216f3dab.
+Boot.img SHA256: e72f06b277320642c95307b2869dd52b60988ee844e2daad24c80f1621283148.
+Image/DTB/appended hashes and backup location in bringup/probe-04/artifacts.txt. Build passed without new warnings, packaging comparisons passed, Image/ELF span and DTB boundary verified. Disassembly confirms expected addresses, payload stores, barriers and MMU-state skip.
+Temporary boot accepted: transfer OKAY (2.242 s), Booting OKAY (10.271 s), total 12.528 s. Awaiting stock recovery.
 Next: establish whether selected Image executes and passes appended-FDT selection before continuing late-boot debugging.

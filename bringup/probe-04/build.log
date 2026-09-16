@@ -1,0 +1,46 @@
+make: Entering directory '/home/morsecode/android-kernel/src/sm7635-mainline'
+make[1]: Entering directory '/home/morsecode/android-kernel/out/sm7635-mainline'
+  GEN     Makefile
+  UPD     include/config/kernel.release
+  UPD     include/generated/utsrelease.h
+  CALL    /home/morsecode/android-kernel/src/sm7635-mainline/scripts/checksyscalls.sh
+  CC      init/version.o
+  CC      kernel/sys.o
+  AR      init/built-in.a
+  AS      arch/arm64/kernel/head.o
+  AR      arch/arm64/kernel/built-in.a
+  AR      arch/arm64/built-in.a
+  CC      drivers/base/firmware_loader/main.o
+  CC      fs/pstore/ram.o
+  CC      kernel/module/main.o
+  AR      fs/pstore/built-in.a
+  AR      fs/built-in.a
+  AR      drivers/base/firmware_loader/built-in.a
+  AR      drivers/base/built-in.a
+  AR      drivers/built-in.a
+  AR      kernel/module/built-in.a
+  AR      kernel/built-in.a
+  AR      built-in.a
+  AR      vmlinux.a
+  LD      vmlinux.o
+  OBJCOPY modules.builtin.modinfo
+  GEN     modules.builtin
+  MODPOST vmlinux.symvers
+  UPD     include/generated/utsversion.h
+  CC      init/version-timestamp.o
+  KSYMS   .tmp_vmlinux0.kallsyms.S
+  AS      .tmp_vmlinux0.kallsyms.o
+  LD      .tmp_vmlinux1
+  NM      .tmp_vmlinux1.syms
+  KSYMS   .tmp_vmlinux1.kallsyms.S
+  AS      .tmp_vmlinux1.kallsyms.o
+  LD      .tmp_vmlinux2
+  NM      .tmp_vmlinux2.syms
+  KSYMS   .tmp_vmlinux2.kallsyms.S
+  AS      .tmp_vmlinux2.kallsyms.o
+  LD      vmlinux
+  NM      System.map
+  SORTTAB vmlinux
+  OBJCOPY arch/arm64/boot/Image
+make[1]: Leaving directory '/home/morsecode/android-kernel/out/sm7635-mainline'
+make: Leaving directory '/home/morsecode/android-kernel/src/sm7635-mainline'

@@ -1,0 +1,109 @@
+
+/home/morsecode/android-kernel/out/sm7635-mainline/vmlinux:	file format elf64-littleaarch64
+
+Disassembly of section .rodata.text:
+
+ffff80008123f0f0 <primary_entry>:
+ffff80008123f0f0: 94006c5b     	bl	0xffff80008125a25c <record_mmu_state>
+ffff80008123f0f4: b50004d3     	cbnz	x19, 0xffff80008123f18c <primary_entry+0x9c>
+ffff80008123f0f8: d2800009     	mov	x9, #0x0        // =0
+ffff80008123f0fc: f2b03e49     	movk	x9, #0x81f2, lsl #16
+ffff80008123f100: 52882a0a     	mov	w10, #0x4150    // =16720
+ffff80008123f104: 72a4088a     	movk	w10, #0x2044, lsl #16
+ffff80008123f108: b9000d2a     	str	w10, [x9, #0xc]
+ffff80008123f10c: 528a682a     	mov	w10, #0x5341    // =21313
+ffff80008123f110: 72a8aa8a     	movk	w10, #0x4554, lsl #16
+ffff80008123f114: b900112a     	str	w10, [x9, #0x10]
+ffff80008123f118: 5289ea4a     	mov	w10, #0x4f52    // =20306
+ffff80008123f11c: 72a8892a     	movk	w10, #0x4449, lsl #16
+ffff80008123f120: b900152a     	str	w10, [x9, #0x14]
+ffff80008123f124: 52840a6a     	mov	w10, #0x2053    // =8275
+ffff80008123f128: 72ae4e0a     	movk	w10, #0x7270, lsl #16
+ffff80008123f12c: b900192a     	str	w10, [x9, #0x18]
+ffff80008123f130: 528c4dea     	mov	w10, #0x626f    // =25199
+ffff80008123f134: 72a5acaa     	movk	w10, #0x2d65, lsl #16
+ffff80008123f138: b9001d2a     	str	w10, [x9, #0x1c]
+ffff80008123f13c: 5286860a     	mov	w10, #0x3430    // =13360
+ffff80008123f140: 72a8a40a     	movk	w10, #0x4520, lsl #16
+ffff80008123f144: b900212a     	str	w10, [x9, #0x20]
+ffff80008123f148: 528a89ca     	mov	w10, #0x544e    // =21582
+ffff80008123f14c: 72ab2a4a     	movk	w10, #0x5952, lsl #16
+ffff80008123f150: b900252a     	str	w10, [x9, #0x24]
+ffff80008123f154: 5284040a     	mov	w10, #0x2020    // =8224
+ffff80008123f158: 72a4040a     	movk	w10, #0x2020, lsl #16
+ffff80008123f15c: b900292a     	str	w10, [x9, #0x28]
+ffff80008123f160: 5286060a     	mov	w10, #0x3030    // =12336
+ffff80008123f164: 72a1440a     	movk	w10, #0xa20, lsl #16
+ffff80008123f168: b9002d2a     	str	w10, [x9, #0x2c]
+ffff80008123f16c: 5280048a     	mov	w10, #0x24      // =36
+ffff80008123f170: b900052a     	str	w10, [x9, #0x4]
+ffff80008123f174: b900092a     	str	w10, [x9, #0x8]
+ffff80008123f178: d5033f9f     	dsb	sy
+ffff80008123f17c: 5288488a     	mov	w10, #0x4244    // =16964
+ffff80008123f180: 72a868ea     	movk	w10, #0x4347, lsl #16
+ffff80008123f184: b900012a     	str	w10, [x9]
+ffff80008123f188: d5033f9f     	dsb	sy
+ffff80008123f18c: 94006c49     	bl	0xffff80008125a2b0 <preserve_boot_args>
+ffff80008123f190: b50004d3     	cbnz	x19, 0xffff80008123f228 <primary_entry+0x138>
+ffff80008123f194: d2800009     	mov	x9, #0x0        // =0
+ffff80008123f198: f2b03e49     	movk	x9, #0x81f2, lsl #16
+ffff80008123f19c: 52882a0a     	mov	w10, #0x4150    // =16720
+ffff80008123f1a0: 72a4088a     	movk	w10, #0x2044, lsl #16
+ffff80008123f1a4: b9000d2a     	str	w10, [x9, #0xc]
+ffff80008123f1a8: 528a682a     	mov	w10, #0x5341    // =21313
+ffff80008123f1ac: 72a8aa8a     	movk	w10, #0x4554, lsl #16
+ffff80008123f1b0: b900112a     	str	w10, [x9, #0x10]
+ffff80008123f1b4: 5289ea4a     	mov	w10, #0x4f52    // =20306
+ffff80008123f1b8: 72a8892a     	movk	w10, #0x4449, lsl #16
+ffff80008123f1bc: b900152a     	str	w10, [x9, #0x14]
+ffff80008123f1c0: 52840a6a     	mov	w10, #0x2053    // =8275
+ffff80008123f1c4: 72ae4e0a     	movk	w10, #0x7270, lsl #16
+ffff80008123f1c8: b900192a     	str	w10, [x9, #0x18]
+ffff80008123f1cc: 528c4dea     	mov	w10, #0x626f    // =25199
+ffff80008123f1d0: 72a5acaa     	movk	w10, #0x2d65, lsl #16
+ffff80008123f1d4: b9001d2a     	str	w10, [x9, #0x1c]
+ffff80008123f1d8: 5286860a     	mov	w10, #0x3430    // =13360
+ffff80008123f1dc: 72a8a40a     	movk	w10, #0x4520, lsl #16
+ffff80008123f1e0: b900212a     	str	w10, [x9, #0x20]
+ffff80008123f1e4: 528a89ca     	mov	w10, #0x544e    // =21582
+ffff80008123f1e8: 72ab2a4a     	movk	w10, #0x5952, lsl #16
+ffff80008123f1ec: b900252a     	str	w10, [x9, #0x24]
+ffff80008123f1f0: 5284040a     	mov	w10, #0x2020    // =8224
+ffff80008123f1f4: 72a4040a     	movk	w10, #0x2020, lsl #16
+ffff80008123f1f8: b900292a     	str	w10, [x9, #0x28]
+ffff80008123f1fc: 5286260a     	mov	w10, #0x3130    // =12592
+ffff80008123f200: 72a1440a     	movk	w10, #0xa20, lsl #16
+ffff80008123f204: b9002d2a     	str	w10, [x9, #0x2c]
+ffff80008123f208: 5280048a     	mov	w10, #0x24      // =36
+ffff80008123f20c: b900052a     	str	w10, [x9, #0x4]
+ffff80008123f210: b900092a     	str	w10, [x9, #0x8]
+ffff80008123f214: d5033f9f     	dsb	sy
+ffff80008123f218: 5288488a     	mov	w10, #0x4244    // =16964
+ffff80008123f21c: 72a868ea     	movk	w10, #0x4347, lsl #16
+ffff80008123f220: b900012a     	str	w10, [x9]
+ffff80008123f224: d5033f9f     	dsb	sy
+ffff80008123f228: b0003381     	adrp	x1, 0xffff8000818b0000 <early_init_stack>
+ffff80008123f22c: 9100003f     	mov	sp, x1
+ffff80008123f230: aa1f03fd     	mov	x29, xzr
+ffff80008123f234: b0000680     	adrp	x0, 0xffff800081310000 <init_idmap_pg_dir>
+ffff80008123f238: aa1f03e1     	mov	x1, xzr
+ffff80008123f23c: 9400608c     	bl	0xffff80008125746c <__pi_create_init_idmap>
+ffff80008123f240: b5000113     	cbnz	x19, 0xffff80008123f260 <primary_entry+0x170>
+ffff80008123f244: d5033fbf     	dmb	sy
+ffff80008123f248: aa0003e1     	mov	x1, x0
+ffff80008123f24c: b0000680     	adrp	x0, 0xffff800081310000 <init_idmap_pg_dir>
+ffff80008123f250: 90ff7062     	adrp	x2, 0xffff80008004b000 <do_bad_area+0x10>
+ffff80008123f254: 91198042     	add	x2, x2, #0x660
+ffff80008123f258: d63f0040     	blr	x2
+ffff80008123f25c: 14000007     	b	0xffff80008123f278 <primary_entry+0x188>
+ffff80008123f260: 90000000     	adrp	x0, 0xffff80008123f000 <enter_vhe>
+ffff80008123f264: d503201f     	nop
+ffff80008123f268: 100049c1     	adr	x1, 0xffff80008123fba0 <__idmap_text_end>
+ffff80008123f26c: 90ff7062     	adrp	x2, 0xffff80008004b000 <do_bad_area+0x10>
+ffff80008123f270: 911ae042     	add	x2, x2, #0x6b8
+ffff80008123f274: d63f0040     	blr	x2
+ffff80008123f278: aa1303e0     	mov	x0, x19
+ffff80008123f27c: 94000004     	bl	0xffff80008123f28c <init_kernel_el>
+ffff80008123f280: aa0003f4     	mov	x20, x0
+ffff80008123f284: 940001f3     	bl	0xffff80008123fa50 <__cpu_setup>
+ffff80008123f288: 14000112     	b	0xffff80008123f6d0 <__primary_switch>
