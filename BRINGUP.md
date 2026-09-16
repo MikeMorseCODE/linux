@@ -85,3 +85,9 @@ Boot.img SHA256: cfd8ec0299a49e7e55cab5630ce95ab560d9b5787edf8182601a42af9b23dfe
 Build and packaging succeeded; exact Image/ELF span and DTB boundary verified, embedded archive unchanged. Artifact hashes in bringup/probe-03/artifacts.txt. Recompiled binfmt_elf reveals three inherited printk format warnings (%lx versus u64); these are not build failures.
 Result: temporary boot transfer OKAY (2.240 s), Booting OKAY (10.270 s), total 12.528 s. Awaiting stock recovery after >=20 seconds for PID1 loop checkpoints.
 Next hypothesis: distinguish failure before device init, within ramoops, within exec, or missing observable userspace output.
+
+## probe-03 recovery and control
+
+Stock ADB returned. Pmsg (727 bytes) SHA256 17dfbad0dff95ad6b50a5a4b22b91d45076956670b46a2babafcc6288e9c8b17; console (917875 bytes) SHA256 179b9bd7aca3c97b012471eca7b5bf3f7616a0751ad5fe9e28e3a9cc27cec168.
+No calibration checkpoint or ramoops/exec marker recovered. Lower buffer contains stock logs, not the new bounded record. Therefore current-build late-boot progress cannot be independently confirmed; do not assume EL0 or ramoops is the failure boundary.
+Next control: wrote `ASTEROIDS STOCK CALIBRATION probe-03-control-20260916` through rooted stock /dev/pmsg0 successfully. Asked user to perform the same button reset, returning to stock, to validate recovery independent of the custom kernel.
