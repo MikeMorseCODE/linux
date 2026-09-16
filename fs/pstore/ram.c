@@ -28,7 +28,7 @@
 #include "ram_internal.h"
 
 /*
- * Temporary probe-03 calibration, confined to the board's reserved stock
+ * Temporary probe-04 calibration, confined to the board's reserved stock
  * console half. The normal ramoops driver owns only the separate pmsg half.
  * Use aligned I/O stores, independent of persistent_ram_new and printk.
  * PID1 is the sole writer. Keep a bounded append-only record for recovery.
@@ -68,7 +68,7 @@ void asteroids_boot_mark(const char *stage)
 
 	/* Prefix also tolerates readers with a 16-byte instead of 12-byte header. */
 	scnprintf(record, sizeof(record),
-		  "PAD ASTEROIDS probe-03 %s\n", stage);
+		  "PAD ASTEROIDS probe-04 %s\n", stage);
 	for (i = 0; i < sizeof(record); i += 4) {
 		u32 word;
 
@@ -862,7 +862,7 @@ static int ramoops_probe(struct platform_device *pdev)
 	/* Temporary Asteroids probe evidence, independent of printk/pstore. */
 	if (cxt->cprz && cxt->phys_addr == 0x82120000) {
 		static const char marker[] =
-			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-03\n";
+			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-04\n";
 
 		persistent_ram_write(cxt->cprz, marker, sizeof(marker) - 1);
 	}
@@ -925,7 +925,7 @@ static int ramoops_probe(struct platform_device *pdev)
 		int len;
 
 		len = scnprintf(marker, sizeof(marker),
-				"ASTEROIDS PSTORE REGISTER ret=%d experiment=probe-03\n",
+				"ASTEROIDS PSTORE REGISTER ret=%d experiment=probe-04\n",
 				err);
 		persistent_ram_write(cxt->cprz, marker, len);
 	}

@@ -91,3 +91,20 @@ Next hypothesis: distinguish failure before device init, within ramoops, within 
 Stock ADB returned. Pmsg (727 bytes) SHA256 17dfbad0dff95ad6b50a5a4b22b91d45076956670b46a2babafcc6288e9c8b17; console (917875 bytes) SHA256 179b9bd7aca3c97b012471eca7b5bf3f7616a0751ad5fe9e28e3a9cc27cec168.
 No calibration checkpoint or ramoops/exec marker recovered. Lower buffer contains stock logs, not the new bounded record. Therefore current-build late-boot progress cannot be independently confirmed; do not assume EL0 or ramoops is the failure boundary.
 Next control: wrote `ASTEROIDS STOCK CALIBRATION probe-03-control-20260916` through rooted stock /dev/pmsg0 successfully. Asked user to perform the same button reset, returning to stock, to validate recovery independent of the custom kernel.
+
+
+## Stock retention control result
+
+Stock boot ID changed from 95beeaaf-b930-4a1c-bfda-f47e516ee1ad to ee8ca15a-8e3c-452a-9f2e-2a6b411ff983. User passed through fastboot and selected Start; no additional custom image boot.
+Recovered pmsg length 782, SHA256 63bb8f6d6b098b77521847d5b250d7a36705a3965d7927a41b773691b87be698.
+Known calibration marker survived at offset 728 with five single-bit errors in 53 bytes. Exact string search misses it. Use corruption-tolerant matching for subsequent recovery.
+Rechecked earlier logs with bitwise sliding comparison: best candidate distances 95–128 bits, not near matches to expected probe markers. No new stage established.
+Conclusion: reset retains much of the data but introduces bit corruption. Late-boot evidence from handoff remains unverified for current images.
+
+## probe-04
+
+Narrow earliest entry: aligned MMU-off stores into known stock console reservation, before and after preserve_boot_args/appended-FDT selection. Record ASTEROIDS probe-04 ENTRY with stage 00 or 01 and DBGC header; later independent kernel_init checkpoints replace it if reached. Ramoops upper-half test unchanged except experiment ID.
+Entry probe skips writes if record_mmu_state reports MMU on; absence would remain ambiguous in that case. Uses only x9/x10; preserves boot arguments and x19/x21 state. No loops, panic, or forced restart.
+Source backups in bringup/probe-04. Stock recovery already tested; use approximate matching because of bit flips.
+Build/source hash, boot.img hash and result: pending.
+Next: establish whether selected Image executes and passes appended-FDT selection before continuing late-boot debugging.

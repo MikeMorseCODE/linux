@@ -82,9 +82,54 @@
 	 *  x20        primary_entry() .. __primary_switch()    CPU boot mode
 	 *  x21        primary_entry() .. start_kernel()        FDT pointer passed at boot in x0
 	 */
+/* Temporary probe-04: known reserved stock console, MMU-off entry only. */
+	.macro asteroids_entry_mark stage
+	cbnz	x19, .Lasteroids_skip\@
+	movz	x9, #0x0000
+	movk	x9, #0x81f2, lsl #16
+	movz	w10, #0x4150
+	movk	w10, #0x2044, lsl #16
+	str	w10, [x9, #12]
+	movz	w10, #0x5341
+	movk	w10, #0x4554, lsl #16
+	str	w10, [x9, #16]
+	movz	w10, #0x4f52
+	movk	w10, #0x4449, lsl #16
+	str	w10, [x9, #20]
+	movz	w10, #0x2053
+	movk	w10, #0x7270, lsl #16
+	str	w10, [x9, #24]
+	movz	w10, #0x626f
+	movk	w10, #0x2d65, lsl #16
+	str	w10, [x9, #28]
+	movz	w10, #0x3430
+	movk	w10, #0x4520, lsl #16
+	str	w10, [x9, #32]
+	movz	w10, #0x544e
+	movk	w10, #0x5952, lsl #16
+	str	w10, [x9, #36]
+	movz	w10, #0x2020
+	movk	w10, #0x2020, lsl #16
+	str	w10, [x9, #40]
+	movz	w10, #\stage
+	movk	w10, #0x0a20, lsl #16
+	str	w10, [x9, #44]
+	mov	w10, #36
+	str	w10, [x9, #4]
+	str	w10, [x9, #8]
+	dsb	sy
+	movz	w10, #0x4244
+	movk	w10, #0x4347, lsl #16
+	str	w10, [x9]
+	dsb	sy
+.Lasteroids_skip\@:
+	.endm
+
 SYM_CODE_START(primary_entry)
 	bl	record_mmu_state
+	asteroids_entry_mark 0x3030	// 00: before appended-FDT selection
 	bl	preserve_boot_args
+	asteroids_entry_mark 0x3130	// 01: after appended-FDT selection
 
 	adrp	x1, early_init_stack
 	mov	sp, x1
