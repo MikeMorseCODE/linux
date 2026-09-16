@@ -823,6 +823,7 @@ static int parse_elf_properties(struct file *f, const struct elf_phdr *phdr,
 
 static int load_elf_binary(struct linux_binprm *bprm)
 {
+	pr_emerg("ASTEROIDS EXEC: load_elf_binary ENTER\n");
 	struct file *interpreter = NULL; /* to shut gcc up */
 	unsigned long load_bias = 0, phdr_addr = 0;
 	int first_pt_load = 1;
@@ -998,7 +999,9 @@ out_free_interp:
 		goto out_free_dentry;
 
 	/* Flush all traces of the currently running executable */
+	pr_emerg("ASTEROIDS EXEC: before begin_new_exec\n");
 	retval = begin_new_exec(bprm);
+	pr_emerg("ASTEROIDS EXEC: after begin_new_exec ret=%d\n", retval);
 	if (retval)
 		goto out_free_dentry;
 
@@ -1016,8 +1019,11 @@ out_free_interp:
 
 	/* Do this so that we can load the interpreter, if need be.  We will
 	   change some of these later */
+	pr_emerg("ASTEROIDS EXEC: before setup_arg_pages\n");
 	retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),
 				 executable_stack);
+	pr_emerg("ASTEROIDS EXEC: after setup_arg_pages ret=%d sp=%lx\n",
+		 retval, bprm->p);
 	if (retval < 0)
 		goto out_free_dentry;
 
@@ -1279,8 +1285,12 @@ out_free_interp:
 		goto out;
 #endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
 
+	pr_emerg("ASTEROIDS EXEC: before create_elf_tables entry=%lx\n",
+		 elf_entry);
 	retval = create_elf_tables(bprm, elf_ex, interp_load_addr,
 				   e_entry, phdr_addr);
+	pr_emerg("ASTEROIDS EXEC: after create_elf_tables ret=%d sp=%lx\n",
+		 retval, bprm->p);
 	if (retval < 0)
 		goto out;
 
@@ -1342,8 +1352,14 @@ out_free_interp:
 	ELF_PLAT_INIT(regs, reloc_func_desc);
 #endif
 
+	pr_emerg("ASTEROIDS EXEC: BEFORE finalize_exec pc=%lx sp=%lx\n",
+		 elf_entry, bprm->p);
 	finalize_exec(bprm);
+	pr_emerg("ASTEROIDS EXEC: BEFORE START_THREAD pc=%lx sp=%lx\n",
+		 elf_entry, bprm->p);
 	START_THREAD(elf_ex, regs, elf_entry, bprm->p);
+	pr_emerg("ASTEROIDS EXEC: AFTER START_THREAD pc=%lx sp=%lx pstate=%lx\n",
+		 regs->pc, regs->sp, regs->pstate);
 	retval = 0;
 out:
 	return retval;

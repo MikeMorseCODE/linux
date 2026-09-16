@@ -25,9 +25,9 @@
 		};
 	};
 
-	pmiv0104_8: pmic@8 {
+	pmiv0104_7: pmic@7 {
 		compatible = "qcom,pm8550", "qcom,spmi-pmic";
-		reg = <0x8 SPMI_USID>;
+		reg = <0x7 SPMI_USID>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 

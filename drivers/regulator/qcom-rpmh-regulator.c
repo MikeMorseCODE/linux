@@ -1464,7 +1464,7 @@ static const struct rpmh_vreg_init_data pm7325_vreg_data[] = {
 
 static const struct rpmh_vreg_init_data pm7550_vreg_data[] = {
 	RPMH_VREG("ldo1",   "ldo%s1",  &pmic5_nldo, "vdd_l1"),
-	RPMH_VREG("ldo2",   "ldo%s2",  &pmic5_pldo, "vdd_l2_l3"),
+	RPMH_VREG("ldo2",   "ldo%s2",  &pmic5_nldo, "vdd_l2_l3"),
 	RPMH_VREG("ldo3",   "ldo%s3",  &pmic5_nldo, "vdd_l2_l3"),
 	RPMH_VREG("ldo4",   "ldo%s4",  &pmic5_nldo, "vdd_l4_l5"),
 	RPMH_VREG("ldo5",   "ldo%s5",  &pmic5_nldo, "vdd_l4_l5"),
@@ -1479,7 +1479,7 @@ static const struct rpmh_vreg_init_data pm7550_vreg_data[] = {
 	RPMH_VREG("ldo14",  "ldo%s14", &pmic5_nldo, "vdd_l12_l14"),
 	RPMH_VREG("ldo15",  "ldo%s15", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
 	RPMH_VREG("ldo16",  "ldo%s16", &pmic5_nldo, "vdd_l13_l16"),
-	RPMH_VREG("ldo17",  "ldo%s17", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
+	RPMH_VREG("ldo17",  "ldo%s17", &pmic5_pldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
 	RPMH_VREG("ldo18",  "ldo%s18", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
 	RPMH_VREG("ldo19",  "ldo%s19", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),
 	RPMH_VREG("ldo20",  "ldo%s20", &pmic5_nldo, "vdd_l15_l17_l18_l19_l20_l21_l22_l23"),

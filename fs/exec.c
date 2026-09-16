@@ -1761,6 +1761,8 @@ static int search_binary_handler(struct linux_binprm *bprm)
 	struct linux_binfmt *fmt;
 	int retval;
 
+	pr_emerg("ASTEROIDS EXEC: search_binary_handler ENTER\n");
+
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		return retval;
@@ -1775,7 +1777,11 @@ static int search_binary_handler(struct linux_binprm *bprm)
 			continue;
 		read_unlock(&binfmt_lock);
 
+		pr_emerg("ASTEROIDS EXEC: calling binfmt load_binary=%ps\n",
+			 fmt->load_binary);
 		retval = fmt->load_binary(bprm);
+		pr_emerg("ASTEROIDS EXEC: binfmt returned ret=%d pnr=%d\n",
+			 retval, bprm->point_of_no_return);
 
 		read_lock(&binfmt_lock);
 		put_binfmt(fmt);
@@ -1839,6 +1845,8 @@ static int bprm_execve(struct linux_binprm *bprm)
 {
 	int retval;
 
+	pr_emerg("ASTEROIDS EXEC: bprm_execve ENTER\n");
+
 	retval = prepare_bprm_creds(bprm);
 	if (retval)
 		return retval;
@@ -1859,7 +1867,10 @@ static int bprm_execve(struct linux_binprm *bprm)
 	if (retval || bprm->is_check)
 		goto out;
 
+	pr_emerg("ASTEROIDS EXEC: before exec_binprm\n");
 	retval = exec_binprm(bprm);
+	pr_emerg("ASTEROIDS EXEC: after exec_binprm ret=%d pnr=%d\n",
+		 retval, bprm->point_of_no_return);
 	if (retval < 0)
 		goto out;
 
@@ -1965,7 +1976,10 @@ static int do_execveat_common(int fd, struct filename *filename,
 			     current->comm, bprm->filename);
 	}
 
+	pr_emerg("ASTEROIDS EXEC: before bprm_execve argc=%d envc=%d\n",
+		 bprm->argc, bprm->envc);
 	retval = bprm_execve(bprm);
+	pr_emerg("ASTEROIDS EXEC: bprm_execve RETURNED ret=%d\n", retval);
 out_free:
 	free_bprm(bprm);
 
@@ -1977,6 +1991,8 @@ out_ret:
 int kernel_execve(const char *kernel_filename,
 		  const char *const *argv, const char *const *envp)
 {
+	pr_emerg("ASTEROIDS EXEC: kernel_execve ENTER file=%s\n",
+		 kernel_filename);
 	struct filename *filename;
 	struct linux_binprm *bprm;
 	int fd = AT_FDCWD;
@@ -1990,6 +2006,7 @@ int kernel_execve(const char *kernel_filename,
 	if (IS_ERR(filename))
 		return PTR_ERR(filename);
 
+	pr_emerg("ASTEROIDS EXEC: before alloc_bprm\n");
 	bprm = alloc_bprm(fd, filename, 0);
 	if (IS_ERR(bprm)) {
 		retval = PTR_ERR(bprm);

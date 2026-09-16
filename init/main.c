@@ -1377,6 +1377,7 @@ static void __init do_pre_smp_initcalls(void)
 		do_one_initcall(initcall_from_entry(fn));
 }
 
+
 static int run_init_process(const char *init_filename)
 {
 	const char *const *p;
@@ -1579,7 +1580,6 @@ static noinline void __init kernel_init_freeable(void)
 	page_alloc_init_late();
 
 	do_basic_setup();
-
 	kunit_run_all_tests();
 
 	wait_for_initramfs();

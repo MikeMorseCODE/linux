@@ -797,6 +797,14 @@ static int ramoops_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_init;
 
+	/* Temporary Asteroids probe evidence, independent of printk/pstore. */
+	if (cxt->cprz && cxt->phys_addr == 0x82120000) {
+		static const char marker[] =
+			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-01\n";
+
+		persistent_ram_write(cxt->cprz, marker, sizeof(marker) - 1);
+	}
+
 	err = ramoops_init_prz("pmsg", dev, cxt, &cxt->mprz, &paddr,
 				cxt->pmsg_size, 0);
 	if (err)
