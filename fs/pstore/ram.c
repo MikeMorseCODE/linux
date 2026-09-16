@@ -21,9 +21,66 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/mm.h>
+#include <linux/sizes.h>
+#include <linux/sched.h>
 
 #include "internal.h"
 #include "ram_internal.h"
+
+/*
+ * Temporary probe-03 calibration, confined to the board's reserved stock
+ * console half. The normal ramoops driver owns only the separate pmsg half.
+ * Use aligned I/O stores, independent of persistent_ram_new and printk.
+ * PID1 is the sole writer. Keep a bounded append-only record for recovery.
+ */
+void asteroids_boot_mark(const char *stage)
+{
+	static void __iomem *buf;
+	static unsigned int used;
+	char record[96] = {};
+	unsigned int i;
+
+	if (task_pid_nr(current) != 1 ||
+	    !of_machine_is_compatible("nothing,asteroids"))
+		return;
+	if (!buf) {
+		struct device_node *guard;
+		struct resource res;
+
+		guard = of_find_node_by_path(
+			"/reserved-memory/ramoops_stock_console_guard@81f20000");
+		if (!guard)
+			return;
+		i = of_address_to_resource(guard, 0, &res);
+		of_node_put(guard);
+		if (i || res.start != 0x81f20000 ||
+		    resource_size(&res) != SZ_2M)
+			return;
+		buf = ioremap(res.start, SZ_4K);
+		if (!buf)
+			return;
+		writel(0, buf + 4);
+		writel(0, buf + 8);
+		writel(0x43474244, buf);
+	}
+	if (used + sizeof(record) > SZ_4K - 12)
+		return;
+
+	/* Prefix also tolerates readers with a 16-byte instead of 12-byte header. */
+	scnprintf(record, sizeof(record),
+		  "PAD ASTEROIDS probe-03 %s\n", stage);
+	for (i = 0; i < sizeof(record); i += 4) {
+		u32 word;
+
+		memcpy(&word, record + i, sizeof(word));
+		writel(word, buf + 12 + used + i);
+	}
+	used += sizeof(record);
+	wmb();
+	writel(used, buf + 4);
+	writel(used, buf + 8);
+	wmb();
+}
 
 #define RAMOOPS_KERNMSG_HDR "===="
 #define MIN_MEM_SIZE 4096UL
@@ -730,6 +787,8 @@ static int ramoops_probe(struct platform_device *pdev)
 	phys_addr_t paddr;
 	int err = -EINVAL;
 
+	asteroids_boot_mark("ramoops_probe ENTER");
+
 	/*
 	 * Only a single ramoops area allowed at a time, so fail extra
 	 * probes.
@@ -792,15 +851,18 @@ static int ramoops_probe(struct platform_device *pdev)
 	if (err)
 		goto fail_init;
 
+	asteroids_boot_mark("before console allocation");
 	err = ramoops_init_prz("console", dev, cxt, &cxt->cprz, &paddr,
 			       cxt->console_size, 0);
 	if (err)
 		goto fail_init;
 
+	asteroids_boot_mark("after console allocation");
+
 	/* Temporary Asteroids probe evidence, independent of printk/pstore. */
 	if (cxt->cprz && cxt->phys_addr == 0x82120000) {
 		static const char marker[] =
-			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-02\n";
+			"ASTEROIDS RAMOOPS PROBE OK experiment=probe-03\n";
 
 		persistent_ram_write(cxt->cprz, marker, sizeof(marker) - 1);
 	}
@@ -855,13 +917,15 @@ static int ramoops_probe(struct platform_device *pdev)
 		}
 	}
 
+	asteroids_boot_mark("before pstore_register");
 	err = pstore_register(&cxt->pstore);
+	asteroids_boot_mark("after pstore_register");
 	if (cxt->cprz && cxt->phys_addr == 0x82120000) {
 		char marker[96];
 		int len;
 
 		len = scnprintf(marker, sizeof(marker),
-				"ASTEROIDS PSTORE REGISTER ret=%d experiment=probe-02\n",
+				"ASTEROIDS PSTORE REGISTER ret=%d experiment=probe-03\n",
 				err);
 		persistent_ram_write(cxt->cprz, marker, len);
 	}

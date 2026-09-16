@@ -65,3 +65,21 @@ Boot.img SHA256: da3554db6eebdd35c15a1d47d499c04ac0fa6d9f2a2655ad9307ecd627703d6
 Image/DTB/appended hashes and backup path: bringup/probe-02/artifacts.txt. Build passed without compiler warnings; Image span and DTB boundary verified, linked initramfs unchanged; packaging content comparisons passed.
 Result: temporary fastboot boot transfer OKAY (2.241 s), Booting OKAY (10.270 s), total 12.525 s. Awaiting manual reset and stock pstore recovery; no new proven kernel stage.
 Next: temporary boot and recover pmsg using rooted stock ADB after user's manual reset.
+
+## probe-02 recovery
+
+Rooted stock ADB returned after manual reset. No ASTEROIDS marker in either recovered file.
+Pmsg: 727 bytes, SHA256 5cc89b007f5b579e5244e6798ed31e0df8b91b8c7896a047fa5ef1f2daf7eab8.
+Console: 928121 bytes, SHA256 59d4f6cc1c475a4fbfd495370ee50a8dfdbca41a866775cc13771e67d665bac7.
+Console contains previous stock kernel text with visibly corrupted characters. Matching stock mapping type did not establish telemetry; failure boundary still unknown.
+
+## probe-03
+
+Calibrate the independent aligned-I/O breadcrumb technique from prior experiments, alongside the upper-half ramoops API markers.
+Writer checks machine compatibility, PID1, exact reserved stock-console guard node address/size before mapping its first 4KiB. Writes bounded 96-byte records with DBGC header using aligned writel stores and barriers. No normal ramoops driver owns this lower half in the current DTS. Stock console logs may be replaced by this intentional diagnostic; no persistent storage/partition writes.
+Checkpoints: kernel_init_freeable entry, before/after do_basic_setup, ramoops probe entry, console allocation, pstore registration, before/after run_init_process and START_THREAD, first and 16th PID1 getpid syscall. Existing /init sleeps one second between getpid calls; 16 calls would establish repeated EL0 round trips and sustained PID1 execution, not shell availability.
+Raw lower-half checkpoint and upper-half ramoops marker are independent; recover both stock pstore files. No forced panic/reboot or timing-based inference.
+Backups: bringup/probe-03/*.before (local).
+Source commit and boot.img hash: pending.
+Result: pending calibration test.
+Next hypothesis: distinguish failure before device init, within ramoops, within exec, or missing observable userspace output.

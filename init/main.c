@@ -12,6 +12,7 @@
 
 #define DEBUG		/* Enable initcall_debug */
 
+#include <linux/pstore_ram.h>
 #include <linux/types.h>
 #include <linux/extable.h>
 #include <linux/module.h>
@@ -1495,7 +1496,9 @@ static int __ref kernel_init(void *unused)
 	do_sysctl_args();
 
 	if (ramdisk_execute_command) {
+		asteroids_boot_mark("before run_init_process");
 		ret = run_init_process(ramdisk_execute_command);
+		asteroids_boot_mark("after run_init_process");
 		if (!ret)
 			return 0;
 		pr_err("Failed to execute %s (error %d)\n",
@@ -1554,6 +1557,7 @@ static noinline void __init kernel_init_freeable(void)
 {
 	/* Now the scheduler is fully set up and can do blocking allocations */
 	gfp_allowed_mask = __GFP_BITS_MASK;
+	asteroids_boot_mark("kernel_init_freeable ENTER");
 
 	/*
 	 * init can allocate pages on any node
@@ -1579,7 +1583,9 @@ static noinline void __init kernel_init_freeable(void)
 	padata_init();
 	page_alloc_init_late();
 
+	asteroids_boot_mark("before do_basic_setup");
 	do_basic_setup();
+	asteroids_boot_mark("after do_basic_setup");
 	kunit_run_all_tests();
 
 	wait_for_initramfs();

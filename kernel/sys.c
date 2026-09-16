@@ -5,6 +5,7 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
 
+#include <linux/pstore_ram.h>
 #include <linux/export.h>
 #include <linux/mm.h>
 #include <linux/mm_inline.h>
@@ -968,6 +969,16 @@ SYSCALL_DEFINE1(setfsgid, gid_t, gid)
  */
 SYSCALL_DEFINE0(getpid)
 {
+	static unsigned int asteroids_pid1_calls;
+
+	if (task_pid_nr(current) == 1 && asteroids_pid1_calls < 16) {
+		asteroids_pid1_calls++;
+		if (asteroids_pid1_calls == 1)
+			asteroids_boot_mark("EL0 getpid first call");
+		if (asteroids_pid1_calls == 16)
+			asteroids_boot_mark("EL0 getpid 16 calls");
+	}
+
 	return task_tgid_vnr(current);
 }
 

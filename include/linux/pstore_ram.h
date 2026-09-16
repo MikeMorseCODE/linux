@@ -39,4 +39,10 @@ struct ramoops_platform_data {
 	struct persistent_ram_ecc_info ecc_info;
 };
 
+#if IS_BUILTIN(CONFIG_PSTORE_RAM)
+void asteroids_boot_mark(const char *stage);
+#else
+static inline void asteroids_boot_mark(const char *stage) {}
+#endif
+
 #endif

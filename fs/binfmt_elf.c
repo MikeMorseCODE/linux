@@ -10,6 +10,7 @@
  * Copyright 1993, 1994: Eric Youngdale (ericy@cais.com).
  */
 
+#include <linux/pstore_ram.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -1357,7 +1358,9 @@ out_free_interp:
 	finalize_exec(bprm);
 	pr_emerg("ASTEROIDS EXEC: BEFORE START_THREAD pc=%lx sp=%lx\n",
 		 elf_entry, bprm->p);
+	asteroids_boot_mark("before START_THREAD");
 	START_THREAD(elf_ex, regs, elf_entry, bprm->p);
+	asteroids_boot_mark("after START_THREAD");
 	pr_emerg("ASTEROIDS EXEC: AFTER START_THREAD pc=%lx sp=%lx pstate=%lx\n",
 		 regs->pc, regs->sp, regs->pstate);
 	retval = 0;
