@@ -60,6 +60,8 @@ Conclusion: persistence unproven; absence does not prove ramoops_probe was never
 Hypothesis: match known stock mem_type=0 (write-combining/Normal noncached mapping) instead of 2. ram_core's non-RAM iomap branch treats any nonzero type as ioremap Device memory. This is a mapping discrepancy, not yet a demonstrated failure cause.
 Change: only ramoops DT memory type and experiment marker; add direct pstore_register return marker. Preserve addresses, sizes, initramfs and all other hardware settings.
 Backups: bringup/probe-02/*.before.
-Build/source commit and boot.img hash: pending.
-Result: pending.
+Build/source commit: 007d2e3cd355dea907d988e9d821e2796feeb646.
+Boot.img SHA256: da3554db6eebdd35c15a1d47d499c04ac0fa6d9f2a2655ad9307ecd627703d6d.
+Image/DTB/appended hashes and backup path: bringup/probe-02/artifacts.txt. Build passed without compiler warnings; Image span and DTB boundary verified, linked initramfs unchanged; packaging content comparisons passed.
+Result: temporary fastboot boot transfer OKAY (2.241 s), Booting OKAY (10.270 s), total 12.525 s. Awaiting manual reset and stock pstore recovery; no new proven kernel stage.
 Next: temporary boot and recover pmsg using rooted stock ADB after user's manual reset.
