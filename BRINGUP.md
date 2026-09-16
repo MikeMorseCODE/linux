@@ -80,6 +80,8 @@ Writer checks machine compatibility, PID1, exact reserved stock-console guard no
 Checkpoints: kernel_init_freeable entry, before/after do_basic_setup, ramoops probe entry, console allocation, pstore registration, before/after run_init_process and START_THREAD, first and 16th PID1 getpid syscall. Existing /init sleeps one second between getpid calls; 16 calls would establish repeated EL0 round trips and sustained PID1 execution, not shell availability.
 Raw lower-half checkpoint and upper-half ramoops marker are independent; recover both stock pstore files. No forced panic/reboot or timing-based inference.
 Backups: bringup/probe-03/*.before (local).
-Source commit and boot.img hash: pending.
-Result: pending calibration test.
+Source commit: 8e5c99aec106a756b68ed2986d1ffd9ceff8cb31.
+Boot.img SHA256: cfd8ec0299a49e7e55cab5630ce95ab560d9b5787edf8182601a42af9b23dfe7.
+Build and packaging succeeded; exact Image/ELF span and DTB boundary verified, embedded archive unchanged. Artifact hashes in bringup/probe-03/artifacts.txt. Recompiled binfmt_elf reveals three inherited printk format warnings (%lx versus u64); these are not build failures.
+Result: temporary boot transfer OKAY (2.240 s), Booting OKAY (10.270 s), total 12.528 s. Awaiting stock recovery after >=20 seconds for PID1 loop checkpoints.
 Next hypothesis: distinguish failure before device init, within ramoops, within exec, or missing observable userspace output.

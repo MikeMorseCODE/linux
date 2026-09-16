@@ -1,0 +1,5 @@
+Backup: /home/morsecode/asteroids-firstboot-backups/probe-03-20260916-080338
+Image bytes = ELF span = 23068672
+6972177948432ea0535396b0abff65e016dae9860e16522aaa9de58d55039042 /home/morsecode/android-kernel/out/sm7635-mainline/arch/arm64/boot/Image
+8bd2f81e303d3a7dd05e17d45ff1bf620398ed19dd3cc850334e861c6fcd1833 /home/morsecode/android-kernel/out/sm7635-mainline/arch/arm64/boot/dts/qcom/sm7635-nothing-asteroids.dtb
+ba7cb795f94d2f2c892deaa4cd33828fcf024784eb79f798b09543d739c5751d /home/morsecode/android-kernel/out/sm7635-mainline/arch/arm64/boot/Image-appended-dtb.new

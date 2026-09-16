@@ -1,0 +1,92 @@
+make: Entering directory '/home/morsecode/android-kernel/src/sm7635-mainline'
+make[1]: Entering directory '/home/morsecode/android-kernel/out/sm7635-mainline'
+  GEN     Makefile
+  UPD     include/config/kernel.release
+  UPD     include/generated/utsrelease.h
+  CALL    /home/morsecode/android-kernel/src/sm7635-mainline/scripts/checksyscalls.sh
+  CC      init/main.o
+  CC      init/version.o
+  CC      kernel/sys.o
+  CC      fs/binfmt_elf.o
+  CC      drivers/base/firmware_loader/main.o
+  CC      fs/pstore/ram.o
+  CC      fs/pstore/ram_core.o
+  CC      kernel/module/main.o
+/home/morsecode/android-kernel/src/sm7635-mainline/fs/binfmt_elf.c:1365:4: warning: format specifies type 'unsigned long' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+ 1364 |         pr_emerg("ASTEROIDS EXEC: AFTER START_THREAD pc=%lx sp=%lx pstate=%lx\n",
+      |                                                         ~~~
+      |                                                         %llx
+ 1365 |                  regs->pc, regs->sp, regs->pstate);
+      |                  ^~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:520:35: note: expanded from macro 'pr_emerg'
+  520 |         printk(KERN_EMERG pr_fmt(fmt), ##__VA_ARGS__)
+      |                                  ~~~     ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:507:60: note: expanded from macro 'printk'
+  507 | #define printk(fmt, ...) printk_index_wrap(_printk, fmt, ##__VA_ARGS__)
+      |                                                     ~~~    ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:479:19: note: expanded from macro 'printk_index_wrap'
+  479 |                 _p_func(_fmt, ##__VA_ARGS__);                           \
+      |                         ~~~~    ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/fs/binfmt_elf.c:1365:14: warning: format specifies type 'unsigned long' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+ 1364 |         pr_emerg("ASTEROIDS EXEC: AFTER START_THREAD pc=%lx sp=%lx pstate=%lx\n",
+      |                                                                ~~~
+      |                                                                %llx
+ 1365 |                  regs->pc, regs->sp, regs->pstate);
+      |                            ^~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:520:35: note: expanded from macro 'pr_emerg'
+  520 |         printk(KERN_EMERG pr_fmt(fmt), ##__VA_ARGS__)
+      |                                  ~~~     ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:507:60: note: expanded from macro 'printk'
+  507 | #define printk(fmt, ...) printk_index_wrap(_printk, fmt, ##__VA_ARGS__)
+      |                                                     ~~~    ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:479:19: note: expanded from macro 'printk_index_wrap'
+  479 |                 _p_func(_fmt, ##__VA_ARGS__);                           \
+      |                         ~~~~    ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/fs/binfmt_elf.c:1365:24: warning: format specifies type 'unsigned long' but the argument has type 'u64' (aka 'unsigned long long') [-Wformat]
+ 1364 |         pr_emerg("ASTEROIDS EXEC: AFTER START_THREAD pc=%lx sp=%lx pstate=%lx\n",
+      |                                                                           ~~~
+      |                                                                           %llx
+ 1365 |                  regs->pc, regs->sp, regs->pstate);
+      |                                      ^~~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:520:35: note: expanded from macro 'pr_emerg'
+  520 |         printk(KERN_EMERG pr_fmt(fmt), ##__VA_ARGS__)
+      |                                  ~~~     ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:507:60: note: expanded from macro 'printk'
+  507 | #define printk(fmt, ...) printk_index_wrap(_printk, fmt, ##__VA_ARGS__)
+      |                                                     ~~~    ^~~~~~~~~~~
+/home/morsecode/android-kernel/src/sm7635-mainline/include/linux/printk.h:479:19: note: expanded from macro 'printk_index_wrap'
+  479 |                 _p_func(_fmt, ##__VA_ARGS__);                           \
+      |                         ~~~~    ^~~~~~~~~~~
+  AR      init/built-in.a
+  AR      fs/pstore/built-in.a
+3 warnings generated.
+  AR      fs/built-in.a
+  AR      drivers/base/firmware_loader/built-in.a
+  AR      drivers/base/built-in.a
+  AR      drivers/built-in.a
+  AR      kernel/module/built-in.a
+  AR      kernel/built-in.a
+  AR      built-in.a
+  AR      vmlinux.a
+  LD      vmlinux.o
+  OBJCOPY modules.builtin.modinfo
+  GEN     modules.builtin
+  MODPOST vmlinux.symvers
+  UPD     include/generated/utsversion.h
+  CC      init/version-timestamp.o
+  KSYMS   .tmp_vmlinux0.kallsyms.S
+  AS      .tmp_vmlinux0.kallsyms.o
+  LD      .tmp_vmlinux1
+  NM      .tmp_vmlinux1.syms
+  KSYMS   .tmp_vmlinux1.kallsyms.S
+  AS      .tmp_vmlinux1.kallsyms.o
+  LD      .tmp_vmlinux2
+  NM      .tmp_vmlinux2.syms
+  KSYMS   .tmp_vmlinux2.kallsyms.S
+  AS      .tmp_vmlinux2.kallsyms.o
+  LD      vmlinux
+  NM      System.map
+  SORTTAB vmlinux
+  OBJCOPY arch/arm64/boot/Image
+make[1]: Leaving directory '/home/morsecode/android-kernel/out/sm7635-mainline'
+make: Leaving directory '/home/morsecode/android-kernel/src/sm7635-mainline'
