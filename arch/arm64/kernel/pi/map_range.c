@@ -30,6 +30,8 @@ void __init map_range(u64 *pte, u64 start, u64 end, u64 pa, pgprot_t prot,
 		      int level, pte_t *tbl, bool may_use_cont, u64 va_offset)
 {
 	u64 cmask = (level == 3) ? CONT_PTE_SIZE - 1 : U64_MAX;
+
+
 	ptdesc_t protval = pgprot_val(prot) & ~PTE_TYPE_MASK;
 	int lshift = (3 - level) * PTDESC_TABLE_SHIFT;
 	u64 lmask = (PAGE_SIZE << lshift) - 1;
@@ -79,7 +81,10 @@ void __init map_range(u64 *pte, u64 start, u64 end, u64 pa, pgprot_t prot,
 				protval &= ~PTE_CONT;
 
 			/* Put down a block or page mapping */
+
+
 			*tbl = __pte(__phys_to_pte_val(pa) | protval);
+
 		}
 		pa += next - start;
 		start = next;
@@ -96,10 +101,52 @@ asmlinkage u64 __init create_init_idmap(pgd_t *pg_dir, ptdesc_t clrmask)
 	pgprot_val(text_prot) &= ~clrmask;
 	pgprot_val(data_prot) &= ~clrmask;
 
+
+	/* ASTEROIDS PROBE17 BEGIN */
+	/*
+	 * MMU is still off here, so 0x82120200 is directly usable
+	 * as persistent physical RAM.
+	 *
+	 * Record exactly what the first map_range() is about to see.
+	 */
+	{
+		volatile u64 *d = (volatile u64 *)0x82120200ULL;
+
+		d[0] = (u64)pg_dir;
+		d[1] = ptep;
+		d[2] = (u64)_stext;
+		d[3] = (u64)__initdata_begin;
+		d[4] = (u64)_stext;       /* PA argument */
+		d[5] = IDMAP_ROOT_LEVEL;
+		d[6] = pgprot_val(text_prot);
+
+		asm volatile("dsb sy" ::: "memory");
+	}
+	/* ASTEROIDS PROBE17 END */
+
 	map_range(&ptep, (u64)_stext, (u64)__initdata_begin, (u64)_stext,
 		  text_prot, IDMAP_ROOT_LEVEL, (pte_t *)pg_dir, false, 0);
 	map_range(&ptep, (u64)__initdata_begin, (u64)_end, (u64)__initdata_begin,
 		  data_prot, IDMAP_ROOT_LEVEL, (pte_t *)pg_dir, false, 0);
+
+
+	/*
+	 * ASTEROIDS probe-09:
+	 * Temporarily identity-map the first 4 KiB of the stock pmsg
+	 * persistent-RAM region so MMU-on breadcrumbs can safely write
+	 * to physical/virtual address 0x82120000.
+	 *
+	 * Diagnostic only - remove after bring-up.
+	 */
+	map_range(&ptep,
+		  0x82120000ULL,
+		  0x82121000ULL,
+		  0x82120000ULL,
+		  data_prot,
+		  IDMAP_ROOT_LEVEL,
+		  (pte_t *)pg_dir,
+		  false,
+		  0);
 
 	return ptep;
 }

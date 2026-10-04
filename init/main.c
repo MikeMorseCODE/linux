@@ -698,6 +698,7 @@ static __initdata DECLARE_COMPLETION(kthreadd_done);
 static noinline void __ref __noreturn rest_init(void)
 {
 	struct task_struct *tsk;
+	asteroids_boot_mark("rest_init ENTER");
 	int pid;
 
 	rcu_scheduler_starting();
@@ -707,6 +708,7 @@ static noinline void __ref __noreturn rest_init(void)
 	 * we schedule it before we create kthreadd, will OOPS.
 	 */
 	pid = user_mode_thread(kernel_init, NULL, CLONE_FS);
+	asteroids_boot_mark("after user_mode_thread kernel_init");
 	/*
 	 * Pin init on the boot CPU. Task migration is not properly working
 	 * until sched_init_smp() has been run. It will set the allowed
@@ -720,6 +722,7 @@ static noinline void __ref __noreturn rest_init(void)
 
 	numa_default_policy();
 	pid = kernel_thread(kthreadd, NULL, NULL, CLONE_FS | CLONE_FILES);
+	asteroids_boot_mark("after kernel_thread kthreadd");
 	rcu_read_lock();
 	kthreadd_task = find_task_by_pid_ns(pid, &init_pid_ns);
 	rcu_read_unlock();
@@ -734,6 +737,7 @@ static noinline void __ref __noreturn rest_init(void)
 	system_state = SYSTEM_SCHEDULING;
 
 	complete(&kthreadd_done);
+	asteroids_boot_mark("after kthreadd_done complete");
 
 	/*
 	 * The boot idle thread must execute schedule()
@@ -893,18 +897,113 @@ static void __init early_numa_node_init(void)
 #endif
 }
 
+
+/* ASTEROIDS CLEAN C PROBE HELPER BEGIN */
+static __always_inline void asteroids_sk_mark(unsigned short marker)
+{
+	volatile unsigned short *p =
+		(volatile unsigned short *)(0x82120000UL + 44);
+
+	*p = marker;
+
+	asm volatile(
+		"dc cvac, %0\n"
+		"dsb sy\n"
+		:
+		: "r" (p)
+		: "memory");
+}
+/* ASTEROIDS CLEAN C PROBE HELPER END */
+
+extern void asteroids_setup_mark(unsigned short marker);
+
 asmlinkage __visible __init __no_sanitize_address __noreturn __no_stack_protector
+
 void start_kernel(void)
 {
 	char *command_line;
 	char *after_dashes;
 
+	/* ASTEROIDS CLEAN C PROBE 28 */
+	asteroids_sk_mark(0x3832);
+
+	/* ASTEROIDS PROBE30 FIRST CALL BEGIN */
+	{
+		unsigned long ast_init_task;
+		unsigned long ast_stack;
+		unsigned long ast_end;
+		unsigned long ast_sp;
+		unsigned long ast_par_r;
+		unsigned long ast_par_w;
+
+		volatile unsigned long *ast_log =
+			(volatile unsigned long *)(0x82120000UL + 0x500);
+
+		/* Entered diagnostic block. */
+		asteroids_sk_mark(0x3633); /* "36" */
+
+		ast_init_task = (unsigned long)&init_task;
+		ast_stack = (unsigned long)task_stack_page(&init_task);
+		ast_end = (unsigned long)end_of_stack(&init_task);
+
+		asm volatile("mov %0, sp" : "=r" (ast_sp));
+
+		asm volatile(
+			"at s1e1r, %1\n"
+			"isb\n"
+			"mrs %0, par_el1\n"
+			: "=r" (ast_par_r)
+			: "r" (ast_end)
+			: "memory");
+
+		asm volatile(
+			"at s1e1w, %1\n"
+			"isb\n"
+			"mrs %0, par_el1\n"
+			: "=r" (ast_par_w)
+			: "r" (ast_end)
+			: "memory");
+
+		ast_log[0] = ast_init_task;
+		ast_log[1] = ast_stack;
+		ast_log[2] = ast_end;
+		ast_log[3] = ast_par_r;
+		ast_log[4] = ast_par_w;
+		ast_log[5] = ast_sp;
+
+		asm volatile(
+			"dc cvac, %0\n"
+			"dsb sy\n"
+			:
+			: "r" (ast_log)
+			: "memory");
+
+		/* All address/translation diagnostics completed. */
+		asteroids_sk_mark(0x3733); /* "37" */
+	}
+	/* ASTEROIDS PROBE30 FIRST CALL END */
+
 	set_task_stack_end_magic(&init_task);
+
+	/* ASTEROIDS CLEAN C PROBE 29 */
+	asteroids_sk_mark(0x3932);
 	smp_setup_processor_id();
+
+	/* ASTEROIDS CLEAN C PROBE 30 */
+	asteroids_sk_mark(0x3033);
 	debug_objects_early_init();
+
+	/* ASTEROIDS CLEAN C PROBE 31 */
+	asteroids_sk_mark(0x3133);
 	init_vmlinux_build_id();
 
+	/* ASTEROIDS CLEAN C PROBE 32 */
+	asteroids_sk_mark(0x3233);
+
 	cgroup_init_early();
+
+	/* ASTEROIDS CLEAN C PROBE 33 */
+	asteroids_sk_mark(0x3333);
 
 	local_irq_disable();
 	early_boot_irqs_disabled = true;
@@ -914,29 +1013,57 @@ void start_kernel(void)
 	 * enable them.
 	 */
 	boot_cpu_init();
+
+	/* ASTEROIDS CLEAN C PROBE 34 */
+	asteroids_sk_mark(0x3433);
 	page_address_init();
 	pr_notice("%s", linux_banner);
+	/* ASTEROIDS CLEAN C PROBE 35 */
+	asteroids_sk_mark(0x3533);
+
 	setup_arch(&command_line);
+	/* ASTEROIDS PROBE43 AFTER SETUP_ARCH */
+	asteroids_setup_mark(0x3239); /* "92" setup_arch returned */
+	/* ASTEROIDS PROBE44 POST-SETUP SPLIT */
+	asteroids_setup_mark(0x3141); /* "A1" before asteroids_boot_mark */
+	asteroids_boot_mark("after setup_arch");
+	asteroids_setup_mark(0x3241); /* "A2" after asteroids_boot_mark */
 	/* Static keys and static calls are needed by LSMs */
 	jump_label_init();
+	asteroids_setup_mark(0x3341); /* "A3" jump_label_init returned */
 	static_call_init();
+	asteroids_setup_mark(0x3441); /* "A4" static_call_init returned */
 	early_security_init();
+	asteroids_setup_mark(0x3541); /* "A5" early_security_init returned */
+	asteroids_setup_mark(0x3641); /* "A6" before setup_boot_config */
 	setup_boot_config();
+	asteroids_setup_mark(0x3741); /* "A7" setup_boot_config returned */
+	asteroids_setup_mark(0x3339); /* "93" setup_boot_config returned */
 	setup_command_line(command_line);
+	asteroids_setup_mark(0x3439); /* "94" setup_command_line returned */
 	setup_nr_cpu_ids();
+	asteroids_setup_mark(0x3539); /* "95" setup_nr_cpu_ids returned */
 	setup_per_cpu_areas();
-	smp_prepare_boot_cpu();	/* arch-specific boot-cpu hooks */
+	asteroids_setup_mark(0x3639); /* "96" setup_per_cpu_areas returned */
+	smp_prepare_boot_cpu();
+	asteroids_setup_mark(0x3739); /* "97" smp_prepare_boot_cpu returned */	/* arch-specific boot-cpu hooks */
 	early_numa_node_init();
 	boot_cpu_hotplug_init();
+	asteroids_setup_mark(0x3839); /* "98" boot_cpu_hotplug_init returned */
+	/* ASTEROIDS PROBE45 GENERIC INIT */
+	asteroids_setup_mark(0x3042); /* "B0" */
+
 
 	pr_notice("Kernel command line: %s\n", saved_command_line);
 	/* parameters may set static keys */
 	parse_early_param();
+	asteroids_setup_mark(0x3142); /* "B1" parse_early_param returned */
 	after_dashes = parse_args("Booting kernel",
 				  static_command_line, __start___param,
 				  __stop___param - __start___param,
 				  -1, -1, NULL, &unknown_bootoption);
 	print_unknown_bootoptions();
+	asteroids_setup_mark(0x3242); /* "B2" boot option parsing returned */
 	if (!IS_ERR_OR_NULL(after_dashes))
 		parse_args("Setting init args", after_dashes, NULL, 0, -1, -1,
 			   NULL, set_init_arg);
@@ -952,15 +1079,23 @@ void start_kernel(void)
 	 * initalization of page allocator
 	 */
 	setup_log_buf(0);
+	asteroids_setup_mark(0x3342); /* "B3" setup_log_buf returned */
 	vfs_caches_init_early();
+	asteroids_setup_mark(0x3442); /* "B4" vfs_caches_init_early returned */
 	sort_main_extable();
+	asteroids_setup_mark(0x3542); /* "B5" sort_main_extable returned */
 	trap_init();
+	asteroids_setup_mark(0x3642); /* "B6" trap_init returned */
 	mm_core_init();
+	asteroids_setup_mark(0x3742); /* "B7" mm_core_init returned */
 	poking_init();
+	asteroids_setup_mark(0x3842); /* "B8" poking_init returned */
 	ftrace_init();
+	asteroids_setup_mark(0x3942); /* "B9" ftrace_init returned */
 
 	/* trace_printk can be enabled here */
 	early_trace_init();
+	asteroids_setup_mark(0x3043); /* "C0" early_trace_init returned */
 
 	/*
 	 * Set up the scheduler prior starting any interrupts (such as the
@@ -968,11 +1103,16 @@ void start_kernel(void)
 	 * time - but meanwhile we still have a functioning scheduler.
 	 */
 	sched_init();
+	asteroids_setup_mark(0x3143); /* "C1" sched_init returned */
+	/* ASTEROIDS PROBE46 IRQ TIMER INIT */
+	asteroids_setup_mark(0x3044); /* "D0" continued after sched_init */
+
 
 	if (WARN(!irqs_disabled(),
 		 "Interrupts were enabled *very* early, fixing it\n"))
 		local_irq_disable();
 	radix_tree_init();
+	asteroids_setup_mark(0x3144); /* "D1" radix_tree_init( returned */
 	maple_tree_init();
 
 	/*
@@ -980,6 +1120,7 @@ void start_kernel(void)
 	 * workqueue to take non-housekeeping into account.
 	 */
 	housekeeping_init();
+	asteroids_setup_mark(0x3244); /* "D2" housekeeping_init( returned */
 
 	/*
 	 * Allow workqueue creation and work item queueing/cancelling
@@ -987,21 +1128,28 @@ void start_kernel(void)
 	 * workqueue_init().
 	 */
 	workqueue_init_early();
+	asteroids_setup_mark(0x3344); /* "D3" workqueue_init_early( returned */
 
 	rcu_init();
+	asteroids_setup_mark(0x3444); /* "D4" rcu_init( returned */
 	kvfree_rcu_init();
 
 	/* Trace events are available after this */
 	trace_init();
+	asteroids_setup_mark(0x3544); /* "D5" trace_init( returned */
 
 	if (initcall_debug)
 		initcall_debug_enable();
 
 	context_tracking_init();
+	asteroids_setup_mark(0x3644); /* "D6" context_tracking_init( returned */
 	/* init some links before init_ISA_irqs() */
 	early_irq_init();
+	asteroids_setup_mark(0x3744); /* "D7" early_irq_init( returned */
 	init_IRQ();
+	asteroids_setup_mark(0x3844); /* "D8" init_IRQ( returned */
 	tick_init();
+	asteroids_setup_mark(0x3944); /* "D9" tick_init( returned */
 	rcu_init_nohz();
 	init_timers();
 	srcu_init();
@@ -1097,6 +1245,7 @@ void start_kernel(void)
 	kcsan_init();
 
 	/* Do the rest non-__init'ed, we're now alive */
+	asteroids_boot_mark("before rest_init");
 	rest_init();
 
 	/*
@@ -1464,12 +1613,16 @@ void __weak free_initmem(void)
 static int __ref kernel_init(void *unused)
 {
 	int ret;
+	asteroids_boot_mark("kernel_init ENTER");
 
 	/*
 	 * Wait until kthreadd is all set-up.
 	 */
+	asteroids_boot_mark("before kthreadd_done wait");
 	wait_for_completion(&kthreadd_done);
+	asteroids_boot_mark("after kthreadd_done wait");
 
+	asteroids_boot_mark("before kernel_init_freeable");
 	kernel_init_freeable();
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
@@ -1555,6 +1708,7 @@ void __init console_on_rootfs(void)
 
 static noinline void __init kernel_init_freeable(void)
 {
+        /* ASTEROIDS KIF SPLIT */
 	/* Now the scheduler is fully set up and can do blocking allocations */
 	gfp_allowed_mask = __GFP_BITS_MASK;
 	asteroids_boot_mark("kernel_init_freeable ENTER");
@@ -1563,25 +1717,48 @@ static noinline void __init kernel_init_freeable(void)
 	 * init can allocate pages on any node
 	 */
 	set_mems_allowed(node_states[N_MEMORY]);
+	asteroids_boot_mark("KIF 01 after set_mems_allowed");
 
 	cad_pid = get_pid(task_pid(current));
 
+	asteroids_boot_mark("KIF 02 before smp_prepare_cpus");
 	smp_prepare_cpus(setup_max_cpus);
+	asteroids_boot_mark("KIF 03 after smp_prepare_cpus");
 
+	asteroids_boot_mark("KIF 04 before workqueue_init");
 	workqueue_init();
+	asteroids_boot_mark("KIF 05 after workqueue_init");
 
+	asteroids_boot_mark("KIF 06 before init_mm_internals");
 	init_mm_internals();
+	asteroids_boot_mark("KIF 07 after init_mm_internals");
 
+	asteroids_boot_mark("KIF 08 before do_pre_smp_initcalls");
 	do_pre_smp_initcalls();
+	asteroids_boot_mark("KIF 09 after do_pre_smp_initcalls");
+	asteroids_boot_mark("KIF 10 before lockup_detector_init");
 	lockup_detector_init();
+	asteroids_boot_mark("KIF 11 after lockup_detector_init");
 
+	asteroids_boot_mark("KIF 12 before smp_init");
 	smp_init();
+	asteroids_boot_mark("KIF 13 after smp_init");
+	asteroids_boot_mark("KIF 14 before sched_init_smp");
 	sched_init_smp();
+	asteroids_boot_mark("KIF 15 after sched_init_smp");
 
+	asteroids_boot_mark("KIF 16 before workqueue_init_topology");
 	workqueue_init_topology();
+	asteroids_boot_mark("KIF 17 after workqueue_init_topology");
+	asteroids_boot_mark("KIF 18 before async_init");
 	async_init();
+	asteroids_boot_mark("KIF 19 after async_init");
+	asteroids_boot_mark("KIF 20 before padata_init");
 	padata_init();
+	asteroids_boot_mark("KIF 21 after padata_init");
+	asteroids_boot_mark("KIF 22 before page_alloc_init_late");
 	page_alloc_init_late();
+	asteroids_boot_mark("KIF 23 after page_alloc_init_late");
 
 	asteroids_boot_mark("before do_basic_setup");
 	do_basic_setup();

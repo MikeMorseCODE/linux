@@ -1,0 +1,18 @@
+===== PRODUCT / SKU =====
+[gsm.operator.iso-country]: [,us]
+[gsm.sim.operator.iso-country]: [,us]
+[ro.boot.hardware.sku]: [ProEEA]
+[ro.boot.product.hardware.sku]: [ProEEA]
+[ro.boot.product.vendor.sku]: [volcano]
+[ro.boot.region]: [EEA]
+[ro.product.device]: [Asteroids]
+[ro.product.name]: [AsteroidsProEEA]
+[ro.product.name_for_attestation]: []
+[ro.product.product.device]: [qssi_64]
+[ro.product.product.name]: [qssi_64]
+
+===== BOOTCONFIG =====
+
+===== CMDLINE =====
+
+===== DT CHOSEN =====

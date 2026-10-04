@@ -449,15 +449,24 @@ SYM_FUNC_END(idmap_kpti_install_ng_mappings)
  *	Return in x0 the value of the SCTLR_EL1 register.
  */
 	.pushsection ".idmap.text", "a"
+        .macro asteroids_secondary_cpu_mark stage, offset
+        /*
+         * Historical persistent-RAM secondary marker disabled.
+         * head.S owns the authoritative secondary checkpoint stream.
+         */
+        .endm
 SYM_FUNC_START(__cpu_setup)
+	asteroids_secondary_cpu_mark 0x553a, 0x114
 	tlbi	vmalle1				// Invalidate local TLB
 	dsb	nsh
+	asteroids_secondary_cpu_mark 0x553b, 0x118
 
 	msr	cpacr_el1, xzr			// Reset cpacr_el1
 	mov	x1, #1 << 12			// Reset mdscr_el1 and disable
 	msr	mdscr_el1, x1			// access to the DCC from EL0
 	reset_pmuserenr_el0 x1			// Disable PMU access from EL0
 	reset_amuserenr_el0 x1			// Disable AMU access from EL0
+	asteroids_secondary_cpu_mark 0x553c, 0x11c
 
 	/*
 	 * Default values for VMSA control registers. These will be adjusted
@@ -473,6 +482,7 @@ SYM_FUNC_START(__cpu_setup)
 	mov	tcr2, xzr
 
 	tcr_clear_errata_bits tcr, x9, x5
+	asteroids_secondary_cpu_mark 0x553d, 0x120
 
 #ifdef CONFIG_ARM64_VA_BITS_52
 	mov		x9, #64 - VA_BITS
@@ -488,6 +498,7 @@ alternative_else_nop_endif
 	 * Set the IPS bits in TCR_EL1.
 	 */
 	tcr_compute_pa_size tcr, #TCR_IPS_SHIFT, x5, x6
+	asteroids_secondary_cpu_mark 0x553e, 0x124
 #ifdef CONFIG_ARM64_HW_AFDBM
 	/*
 	 * Enable hardware update of the Access Flags bit.
@@ -507,6 +518,7 @@ alternative_else_nop_endif
 #endif	/* CONFIG_ARM64_HW_AFDBM */
 	msr	mair_el1, mair
 	msr	tcr_el1, tcr
+	asteroids_secondary_cpu_mark 0x553f, 0x128
 
 	mrs_s	x1, SYS_ID_AA64MMFR3_EL1
 	ubfx	x1, x1, #ID_AA64MMFR3_EL1_S1PIE_SHIFT, #4
@@ -534,6 +546,7 @@ alternative_else_nop_endif
 
 	orr	tcr2, tcr2, TCR2_EL1_PIE
 	msr	REG_TCR2_EL1, x0
+	asteroids_secondary_cpu_mark 0x5540, 0x12c
 
 .Lskip_indirection:
 
@@ -542,6 +555,7 @@ alternative_else_nop_endif
 	cbz	x1, 1f
 	msr	REG_TCR2_EL1, tcr2
 1:
+	asteroids_secondary_cpu_mark 0x5541, 0x130
 
 	/*
 	 * Prepare SCTLR

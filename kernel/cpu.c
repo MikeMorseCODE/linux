@@ -44,6 +44,9 @@
 
 #include "smpboot.h"
 
+extern void asteroids_boot_mark(const char *msg);
+extern void asteroids_setup_capture(unsigned int slot, u64 value);
+
 /**
  * struct cpuhp_cpu_state - Per cpu hotplug state storage
  * @state:	The current cpu state
@@ -1628,11 +1631,30 @@ void cpuhp_online_idle(enum cpuhp_state state)
 /* Requires cpu_add_remove_lock to be held */
 static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
 {
+	/* ASTEROIDS CPU5 _CPU_UP SPLIT */
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5A00001ULL);
+		asteroids_boot_mark("C5A1");
+	}
 	struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
 	struct task_struct *idle;
 	int ret = 0;
 
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5A00002ULL);
+		asteroids_boot_mark("C5A2");
+	}
 	cpus_write_lock();
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5A00003ULL);
+		asteroids_boot_mark("C5A3");
+	}
+
+	if (cpu == 5) {
+		asteroids_setup_capture(6, (u64)(unsigned int)st->state);
+		asteroids_setup_capture(7, (u64)(unsigned int)target);
+		asteroids_setup_capture(6, 0xC5A00004ULL);
+	}
 
 	if (!cpu_present(cpu)) {
 		ret = -EINVAL;
@@ -1643,12 +1665,22 @@ static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
 	 * The caller of cpu_up() might have raced with another
 	 * caller. Nothing to do.
 	 */
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5A00005ULL);
+
 	if (st->state >= target)
 		goto out;
 
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5A00006ULL);
+
 	if (st->state == CPUHP_OFFLINE) {
 		/* Let it fail before we try to bring the cpu up */
+		if (cpu == 5)
+			asteroids_setup_capture(6, 0xC5A00007ULL);
 		idle = idle_thread_get(cpu);
+		if (cpu == 5)
+			asteroids_setup_capture(6, 0xC5A00008ULL);
 		if (IS_ERR(idle)) {
 			ret = PTR_ERR(idle);
 			goto out;
@@ -1657,19 +1689,31 @@ static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
 		/*
 		 * Reset stale stack state from the last time this CPU was online.
 		 */
+		if (cpu == 5)
+			asteroids_setup_capture(6, 0xC5A00009ULL);
 		scs_task_reset(idle);
 		kasan_unpoison_task_stack(idle);
+		if (cpu == 5)
+			asteroids_setup_capture(6, 0xC5A0000AULL);
 	}
 
 	cpuhp_tasks_frozen = tasks_frozen;
 
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5A0000BULL);
 	cpuhp_set_state(cpu, st, target);
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5A0000CULL);
 	/*
 	 * If the current CPU state is in the range of the AP hotplug thread,
 	 * then we need to kick the thread once more.
 	 */
 	if (st->state > CPUHP_BRINGUP_CPU) {
+		if (cpu == 5)
+			asteroids_setup_capture(6, 0xC5A0000DULL);
 		ret = cpuhp_kick_ap_work(cpu);
+		if (cpu == 5)
+			asteroids_setup_capture(6, 0xC5A0000EULL);
 		/*
 		 * The AP side has done the error rollback already. Just
 		 * return the error code..
@@ -1684,9 +1728,21 @@ static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
 	 * responsible for bringing it up to the target state.
 	 */
 	target = min((int)target, CPUHP_BRINGUP_CPU);
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5A0000FULL);
+		asteroids_boot_mark("C5AF");
+	}
 	ret = cpuhp_up_callbacks(cpu, st, target);
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5A00010ULL);
+		asteroids_boot_mark("C5B0");
+	}
 out:
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5A00011ULL);
 	cpus_write_unlock();
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5A00012ULL);
 	arch_smt_update();
 	return ret;
 }
@@ -1695,30 +1751,83 @@ static int cpu_up(unsigned int cpu, enum cpuhp_state target)
 {
 	int err = 0;
 
+	/* ASTEROIDS CPU5 BINARY STAGE */
+	if (cpu == 5) {
+		asteroids_setup_capture(7, (u64)(unsigned int)target);
+		asteroids_setup_capture(6, 0xC5000001ULL);
+		asteroids_boot_mark("C5U1");
+	}
+
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5000002ULL);
+
 	if (!cpu_possible(cpu)) {
 		pr_err("can't online cpu %d because it is not configured as may-hotadd at boot time\n",
 		       cpu);
 		return -EINVAL;
 	}
 
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5000004ULL);
+		asteroids_boot_mark("C5U4");
+	}
+
 	err = try_online_node(cpu_to_node(cpu));
+
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5000005ULL);
+		asteroids_boot_mark("C5U5");
+	}
 	if (err)
 		return err;
 
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5000006ULL);
+		asteroids_boot_mark("C5U6");
+	}
+
 	cpu_maps_update_begin();
+
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC5000007ULL);
+		asteroids_boot_mark("C5U7");
+	}
+
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5000008ULL);
 
 	if (cpu_hotplug_disabled) {
 		err = -EBUSY;
 		goto out;
 	}
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC5000009ULL);
+
 	if (!cpu_bootable(cpu)) {
 		err = -EPERM;
 		goto out;
 	}
 
+	if (cpu == 5) {
+		asteroids_setup_capture(6, 0xC500000AULL);
+		asteroids_boot_mark("C5UA");
+	}
+
 	err = _cpu_up(cpu, 0, target);
+
+	if (cpu == 5) {
+		asteroids_setup_capture(7, (u64)(s64)err);
+		asteroids_setup_capture(6, 0xC500000BULL);
+		asteroids_boot_mark("C5UB");
+	}
 out:
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC500000CULL);
+
 	cpu_maps_update_done();
+
+	if (cpu == 5)
+		asteroids_setup_capture(6, 0xC500000DULL);
 	return err;
 }
 
@@ -1781,14 +1890,30 @@ static void __init cpuhp_bringup_mask(const struct cpumask *mask, unsigned int n
 
 	for_each_cpu(cpu, mask) {
 		struct cpuhp_cpu_state *st = per_cpu_ptr(&cpuhp_state, cpu);
+		int ret;
 
-		if (cpu_up(cpu, target) && can_rollback_cpu(st)) {
+		/* ASTEROIDS CPUHP MASK SPLIT */
+		asteroids_setup_capture(0, cpu);
+		asteroids_setup_capture(1, ncpus);
+		asteroids_setup_capture(2, (u64)(unsigned int)st->state);
+		asteroids_setup_capture(3, 0xdead000000000003ULL);
+		asteroids_setup_capture(4, (u64)(unsigned int)target);
+
+		asteroids_boot_mark("HPM 01 before cpu_up");
+		ret = cpu_up(cpu, target);
+		asteroids_setup_capture(3, (u64)(s64)ret);
+		asteroids_setup_capture(5, (u64)(unsigned int)st->state);
+		asteroids_boot_mark("HPM 02 after cpu_up");
+
+		if (ret && can_rollback_cpu(st)) {
+			asteroids_boot_mark("HPM 03 before rollback");
 			/*
 			 * If this failed then cpu_up() might have only
 			 * rolled back to CPUHP_BP_KICK_AP for the final
 			 * online. Clean it up. NOOP if already rolled back.
 			 */
 			WARN_ON(cpuhp_invoke_callback_range(false, cpu, st, CPUHP_OFFLINE));
+			asteroids_boot_mark("HPM 04 after rollback");
 		}
 
 		if (!--ncpus)
@@ -1882,15 +2007,29 @@ static inline bool cpuhp_bringup_cpus_parallel(unsigned int ncpus) { return fals
 
 void __init bringup_nonboot_cpus(unsigned int max_cpus)
 {
-	if (!max_cpus)
+	/* ASTEROIDS BNB SPLIT */
+	asteroids_boot_mark("BNB 01 entered bringup_nonboot_cpus");
+
+	if (!max_cpus) {
+		asteroids_boot_mark("BNB 02 max_cpus zero");
 		return;
+	}
+
+	asteroids_boot_mark("BNB 03 before parallel bringup");
 
 	/* Try parallel bringup optimization if enabled */
-	if (cpuhp_bringup_cpus_parallel(max_cpus))
+	if (cpuhp_bringup_cpus_parallel(max_cpus)) {
+		asteroids_boot_mark("BNB 04 parallel returned true");
 		return;
+	}
+
+	asteroids_boot_mark("BNB 05 parallel returned false");
+	asteroids_boot_mark("BNB 06 before serialized cpuhp_bringup_mask");
 
 	/* Full per CPU serialized bringup */
 	cpuhp_bringup_mask(cpu_present_mask, max_cpus, CPUHP_ONLINE);
+
+	asteroids_boot_mark("BNB 07 after serialized cpuhp_bringup_mask");
 }
 
 #ifdef CONFIG_PM_SLEEP_SMP

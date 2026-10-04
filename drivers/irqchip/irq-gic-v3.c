@@ -38,6 +38,9 @@
 
 #include "irq-gic-common.h"
 
+extern void asteroids_setup_mark(unsigned short marker);
+extern void asteroids_setup_capture(unsigned int slot, u64 value);
+
 static u8 dist_prio_irq __ro_after_init = GICV3_PRIO_IRQ;
 static u8 dist_prio_nmi __ro_after_init = GICV3_PRIO_NMI;
 
@@ -1032,6 +1035,8 @@ static void __init gic_dist_init(void)
 
 static int gic_iterate_rdists(int (*fn)(struct redist_region *, void __iomem *))
 {
+	asteroids_setup_mark(0x304e); /* "N0" entered gic_iterate_rdists */
+
 	int ret = -ENODEV;
 	int i;
 
@@ -1040,16 +1045,38 @@ static int gic_iterate_rdists(int (*fn)(struct redist_region *, void __iomem *))
 		u64 typer;
 		u32 reg;
 
+		asteroids_setup_mark(0x314e); /* "N1" */
 		reg = readl_relaxed(ptr + GICR_PIDR2) & GIC_PIDR2_ARCH_MASK;
+		asteroids_setup_mark(0x324e); /* "N2" */
 		if (reg != GIC_PIDR2_ARCH_GICv3 &&
 		    reg != GIC_PIDR2_ARCH_GICv4) { /* We're in trouble... */
 			pr_warn("No redistributor present @%p\n", ptr);
 			break;
 		}
 
+		/* PROBE53: record the exact mapping and independent register reads. */
+		asteroids_setup_capture(0, ((u64)(u32)i << 32) |
+					      gic_data.nr_redist_regions);
+		asteroids_setup_capture(1, (u64)(uintptr_t)ptr);
+		asteroids_setup_capture(2, gic_data.redist_regions[i].phys_base);
+		asteroids_setup_capture(3, gic_data.redist_stride);
+		asteroids_setup_mark(0x3054); /* "T0" before CTLR */
+		asteroids_setup_capture(4, readl_relaxed(ptr + GICR_CTLR));
+		asteroids_setup_mark(0x3154); /* "T1" CTLR returned */
+		asteroids_setup_capture(5, readl_relaxed(ptr + GICR_IIDR));
+		asteroids_setup_mark(0x3254); /* "T2" IIDR returned */
+
 		do {
+			asteroids_setup_mark(0x334e); /* "N3" */
+			/* PROBE54: native 64-bit access succeeds; 32-bit access hangs. */
+			asteroids_setup_mark(0x3055); /* "U0" before 64-bit */
 			typer = gic_read_typer(ptr + GICR_TYPER);
+			asteroids_setup_capture(6, typer);
+			asteroids_setup_mark(0x3155); /* "U1" 64-bit succeeded */
+			asteroids_setup_mark(0x344e); /* "N4" */
+			asteroids_setup_mark(0x354e); /* "N5" */
 			ret = fn(gic_data.redist_regions + i, ptr);
+			asteroids_setup_mark(0x364e); /* "N6" */
 			if (!ret)
 				return 0;
 
@@ -1119,25 +1146,41 @@ static int gic_populate_rdist(void)
 static int __gic_update_rdist_properties(struct redist_region *region,
 					 void __iomem *ptr)
 {
+	asteroids_setup_mark(0x3050); /* "P0" entered __gic_update_rdist_properties */
+
+	asteroids_setup_mark(0x3150); /* "P1" */
 	u64 typer = gic_read_typer(ptr + GICR_TYPER);
+	asteroids_setup_mark(0x3250); /* "P2" */
+	asteroids_setup_mark(0x3350); /* "P3" */
 	u32 ctlr = readl_relaxed(ptr + GICR_CTLR);
+	asteroids_setup_mark(0x3450); /* "P4" */
 
 	/* Boot-time cleanup */
 	if ((typer & GICR_TYPER_VLPIS) && (typer & GICR_TYPER_RVPEID)) {
 		u64 val;
 
 		/* Deactivate any present vPE */
+		asteroids_setup_mark(0x3051); /* "Q0" */
 		val = gicr_read_vpendbaser(ptr + SZ_128K + GICR_VPENDBASER);
-		if (val & GICR_VPENDBASER_Valid)
+		asteroids_setup_mark(0x3151); /* "Q1" */
+		if (val & GICR_VPENDBASER_Valid) {
+			asteroids_setup_mark(0x3251); /* "Q2" */
 			gicr_write_vpendbaser(GICR_VPENDBASER_PendingLast,
 					      ptr + SZ_128K + GICR_VPENDBASER);
+			asteroids_setup_mark(0x3351); /* "Q3" */
+		}
 
 		/* Mark the VPE table as invalid */
+		asteroids_setup_mark(0x3451); /* "Q4" */
 		val = gicr_read_vpropbaser(ptr + SZ_128K + GICR_VPROPBASER);
+		asteroids_setup_mark(0x3551); /* "Q5" */
 		val &= ~GICR_VPROPBASER_4_1_VALID;
+		asteroids_setup_mark(0x3651); /* "Q6" */
 		gicr_write_vpropbaser(val, ptr + SZ_128K + GICR_VPROPBASER);
+		asteroids_setup_mark(0x3751); /* "Q7" */
 	}
 
+	asteroids_setup_mark(0x3052); /* "R0" */
 	gic_data.rdists.has_vlpis &= !!(typer & GICR_TYPER_VLPIS);
 
 	/*
@@ -1164,13 +1207,19 @@ static int __gic_update_rdist_properties(struct redist_region *region,
 
 	gic_data.ppi_nr = min(GICR_TYPER_NR_PPIS(typer), gic_data.ppi_nr);
 
+	asteroids_setup_mark(0x3152); /* "R1" */
 	return 1;
 }
 
 static void gic_update_rdist_properties(void)
 {
+	/* ASTEROIDS PROBE51 EXACT RDIST */
+	asteroids_setup_mark(0x304d); /* "M0" entered gic_update_rdist_properties */
+
 	gic_data.ppi_nr = UINT_MAX;
+	asteroids_setup_mark(0x314d); /* "M1" */
 	gic_iterate_rdists(__gic_update_rdist_properties);
+	asteroids_setup_mark(0x324d); /* "M2" */
 	if (WARN_ON(gic_data.ppi_nr == UINT_MAX))
 		gic_data.ppi_nr = 0;
 	pr_info("GICv3 features: %d PPIs%s%s\n",
@@ -2060,6 +2109,9 @@ static int __init gic_init_bases(phys_addr_t dist_phys_base,
 				 u64 redist_stride,
 				 struct fwnode_handle *handle)
 {
+	/* ASTEROIDS PROBE50 GIC_INIT_BASES */
+	asteroids_setup_mark(0x304a); /* "J0" entered gic_init_bases */
+
 	u32 typer;
 	int err;
 
@@ -2069,6 +2121,7 @@ static int __init gic_init_bases(phys_addr_t dist_phys_base,
 	if (static_branch_likely(&supports_deactivate_key))
 		pr_info("GIC: Using split EOI/Deactivate mode\n");
 
+	asteroids_setup_mark(0x314a); /* "J1" */
 	gic_data.fwnode = handle;
 	gic_data.dist_phys_base = dist_phys_base;
 	gic_data.dist_base = dist_base;
@@ -2079,11 +2132,15 @@ static int __init gic_init_bases(phys_addr_t dist_phys_base,
 	/*
 	 * Find out how many interrupts are supported.
 	 */
+	asteroids_setup_mark(0x324a); /* "J2" */
 	typer = readl_relaxed(gic_data.dist_base + GICD_TYPER);
+	asteroids_setup_mark(0x334a); /* "J3" */
 	gic_data.rdists.gicd_typer = typer;
 
+	asteroids_setup_mark(0x344a); /* "J4" */
 	gic_enable_quirks(readl_relaxed(gic_data.dist_base + GICD_IIDR),
 			  gic_quirks, &gic_data);
+	asteroids_setup_mark(0x354a); /* "J5" */
 
 	pr_info("%d SPIs implemented\n", GIC_LINE_NR - 32);
 	pr_info("%d Extended SPIs implemented\n", GIC_ESPI_NR);
@@ -2092,12 +2149,18 @@ static int __init gic_init_bases(phys_addr_t dist_phys_base,
 	 * ThunderX1 explodes on reading GICD_TYPER2, in violation of the
 	 * architecture spec (which says that reserved registers are RES0).
 	 */
+	asteroids_setup_mark(0x364a); /* "J6" */
 	if (!(gic_data.flags & FLAGS_WORKAROUND_CAVIUM_ERRATUM_38539))
 		gic_data.rdists.gicd_typer2 = readl_relaxed(gic_data.dist_base + GICD_TYPER2);
 
+	asteroids_setup_mark(0x374a); /* "J7" TYPER2 path passed */
+	asteroids_setup_mark(0x384a); /* "J8" */
 	gic_data.domain = irq_domain_create_tree(handle, &gic_irq_domain_ops,
 						 &gic_data);
+	asteroids_setup_mark(0x394a); /* "J9" */
+	asteroids_setup_mark(0x304b); /* "K0" */
 	gic_data.rdists.rdist = alloc_percpu(typeof(*gic_data.rdists.rdist));
+	asteroids_setup_mark(0x314b); /* "K1" */
 	if (!static_branch_unlikely(&gic_nvidia_t241_erratum)) {
 		/* Disable GICv4.x features for the erratum T241-FABRIC-4 */
 		gic_data.rdists.has_rvpeid = true;
@@ -2111,6 +2174,7 @@ static int __init gic_init_bases(phys_addr_t dist_phys_base,
 		goto out_free;
 	}
 
+	asteroids_setup_mark(0x324b); /* "K2" domain/percpu valid */
 	irq_domain_update_bus_token(gic_data.domain, DOMAIN_BUS_WIRED);
 
 	gic_data.has_rss = !!(typer & GICD_TYPER_RSS);
@@ -2121,14 +2185,26 @@ static int __init gic_init_bases(phys_addr_t dist_phys_base,
 			pr_err("Failed to initialize MBIs\n");
 	}
 
+	asteroids_setup_mark(0x334b); /* "K3" */
 	set_handle_irq(gic_handle_irq);
+	asteroids_setup_mark(0x344b); /* "K4" */
 
+	asteroids_setup_mark(0x354b); /* "K5" */
 	gic_update_rdist_properties();
+	asteroids_setup_mark(0x364b); /* "K6" */
 
+	asteroids_setup_mark(0x374b); /* "K7" */
 	gic_cpu_sys_reg_enable();
+	asteroids_setup_mark(0x384b); /* "K8" */
+	asteroids_setup_mark(0x394b); /* "K9" */
 	gic_prio_init();
+	asteroids_setup_mark(0x304c); /* "L0" */
+	asteroids_setup_mark(0x314c); /* "L1" */
 	gic_dist_init();
+	asteroids_setup_mark(0x324c); /* "L2" */
+	asteroids_setup_mark(0x334c); /* "L3" */
 	gic_cpu_init();
+	asteroids_setup_mark(0x344c); /* "L4" */
 	gic_enable_nmi_support();
 	gic_smp_init();
 	gic_cpu_pm_init();
@@ -2306,6 +2382,9 @@ static void __iomem *gic_of_iomap(struct device_node *node, int idx,
 
 static int __init gic_of_init(struct device_node *node, struct device_node *parent)
 {
+	/* ASTEROIDS PROBE49 GICV3 */
+	asteroids_setup_mark(0x3048); /* "H0" entered gic_of_init */
+
 	phys_addr_t dist_phys_base;
 	void __iomem *dist_base;
 	struct redist_region *rdist_regs;
@@ -2353,15 +2432,22 @@ static int __init gic_of_init(struct device_node *node, struct device_node *pare
 
 	gic_enable_of_quirks(node, gic_quirks, &gic_data);
 
+	asteroids_setup_mark(0x3548); /* "H5" before gic_init_bases */
 	err = gic_init_bases(dist_phys_base, dist_base, rdist_regs,
 			     nr_redist_regions, redist_stride, &node->fwnode);
+	asteroids_setup_mark(0x3648); /* "H6" after gic_init_bases */
 	if (err)
 		goto out_unmap_rdist;
 
+	asteroids_setup_mark(0x3748); /* "H7" before gic_populate_ppi_partitions */
 	gic_populate_ppi_partitions(node);
+	asteroids_setup_mark(0x3848); /* "H8" after gic_populate_ppi_partitions */
 
-	if (static_branch_likely(&supports_deactivate_key))
+	if (static_branch_likely(&supports_deactivate_key)) {
+		asteroids_setup_mark(0x3948); /* "H9" before gic_of_setup_kvm_info */
 		gic_of_setup_kvm_info(node, nr_redist_regions);
+		asteroids_setup_mark(0x3049); /* "I0" after gic_of_setup_kvm_info */
+	}
 	return 0;
 
 out_unmap_rdist:

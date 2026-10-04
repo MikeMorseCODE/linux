@@ -15,6 +15,9 @@
 #include <asm/thread_info.h>
 #include <asm/unistd.h>
 #include <asm/unistd_compat_32.h>
+#include <linux/uaccess.h>
+
+extern void asteroids_boot_mark(const char *stage);
 
 long compat_arm_syscall(struct pt_regs *regs, int scno);
 long sys_ni_syscall(void);
@@ -35,11 +38,99 @@ static long __invoke_syscall(struct pt_regs *regs, syscall_fn_t syscall_fn)
 	return syscall_fn(regs);
 }
 
+/* ASTEROIDS PID1 TRACE V2 */
+static unsigned int asteroids_pid1_syscall_count;
+
 static void invoke_syscall(struct pt_regs *regs, unsigned int scno,
 			   unsigned int sc_nr,
 			   const syscall_fn_t syscall_table[])
 {
+
 	long ret;
+	unsigned int asteroids_pid1_n = 0;
+	bool asteroids_pid1_trace = false;
+
+	if (current->pid == 1) {
+		char mark[96];
+
+		asteroids_pid1_n = asteroids_pid1_syscall_count++;
+		asteroids_pid1_trace = asteroids_pid1_n < 200;
+
+		if (asteroids_pid1_trace) {
+			scnprintf(mark, sizeof(mark),
+				  "PID1 PRE N%u S%u A0=%llx A1=%llx A2=%llx",
+				  asteroids_pid1_n, scno,
+				  regs->regs[0],
+				  regs->regs[1],
+				  regs->regs[2]);
+
+
+			asteroids_boot_mark(mark);
+		}
+	}
+
+	/* ASTEROIDS PID1 PAYLOAD TRACE */
+	if (current->pid == 1 && scno == 56) {
+		char path[72];
+		char mark[96];
+		long n;
+
+		n = strncpy_from_user(path,
+				     (const char __user *)regs->regs[1],
+				     sizeof(path) - 1);
+
+		if (n > 0) {
+			path[sizeof(path) - 1] = '\0';
+			scnprintf(mark, sizeof(mark),
+				  "PID1 OPEN N%u %s",
+				  asteroids_pid1_n, path);
+		} else {
+			scnprintf(mark, sizeof(mark),
+				  "PID1 OPEN N%u COPYERR=%ld PTR=%llx",
+				  asteroids_pid1_n, n,
+				  regs->regs[1]);
+		}
+
+		asteroids_boot_mark(mark);
+	}
+
+	if (current->pid == 1 && scno == 64) {
+		const char __user *ubuf =
+			(const char __user *)regs->regs[1];
+		size_t total = min_t(size_t, regs->regs[2], 160);
+		size_t off = 0;
+
+		while (off < total) {
+			char data[49];
+			char mark[96];
+			size_t chunk = min_t(size_t, 48, total - off);
+			size_t i;
+
+			if (copy_from_user(data, ubuf + off, chunk)) {
+				scnprintf(mark, sizeof(mark),
+					  "PID1 WRITE N%u O%zu COPYERR",
+					  asteroids_pid1_n, off);
+				asteroids_boot_mark(mark);
+				break;
+			}
+
+			for (i = 0; i < chunk; i++) {
+				unsigned char c = data[i];
+
+				if (c < 0x20 || c > 0x7e)
+					data[i] = ' ';
+			}
+
+			data[chunk] = '\0';
+
+			scnprintf(mark, sizeof(mark),
+				  "PID1 WRITE N%u O%zu %s",
+				  asteroids_pid1_n, off, data);
+
+			asteroids_boot_mark(mark);
+			off += chunk;
+		}
+	}
 
 	add_random_kstack_offset();
 
@@ -49,6 +140,16 @@ static void invoke_syscall(struct pt_regs *regs, unsigned int scno,
 		ret = __invoke_syscall(regs, syscall_fn);
 	} else {
 		ret = do_ni_syscall(regs, scno);
+	}
+
+	if (asteroids_pid1_trace) {
+		char mark[96];
+
+		scnprintf(mark, sizeof(mark),
+			  "PID1 POST N%u S%u R=%ld",
+			  asteroids_pid1_n, scno, ret);
+
+		asteroids_boot_mark(mark);
 	}
 
 	syscall_set_return_value(current, regs, 0, ret);

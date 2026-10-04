@@ -54,6 +54,7 @@
 #include <asm/efi.h>
 #include <asm/xen/hypervisor.h>
 #include <asm/mmu_context.h>
+#include <linux/io.h>
 
 static int num_standard_resources;
 static struct resource *standard_resources;
@@ -278,25 +279,187 @@ u64 cpu_logical_map(unsigned int cpu)
 	return __cpu_logical_map[cpu];
 }
 
+
+/* ASTEROIDS SETUP_ARCH PROBE HELPER BEGIN */
+/* ASTEROIDS HIGHVA PMSG BEGIN */
+void *asteroids_pmsg_va;
+
+static __init void asteroids_setup_pmsg_remap(void)
+{
+	/*
+	 * early_memremap lives in the kernel/fixmap VA region, so it
+	 * survives the later removal of the TTBR0 identity map.
+	 */
+	asteroids_pmsg_va = early_memremap(0x82120000UL, PAGE_SIZE);
+}
+
+void asteroids_setup_mark(unsigned short marker);
+void asteroids_setup_capture(unsigned int slot, u64 value);
+
+#define ASTEROIDS_SESSION_MAGIC	0x41535453U /* "ASTS" */
+#define ASTEROIDS_SESSION_GENERATION    4U
+#define ASTEROIDS_SESSION_SEQUENCE	0x53544147U /* "GATS" */
+#define ASTEROIDS_SESSION_HEADER_SIZE	12
+#define ASTEROIDS_SESSION_RECORD_SIZE   2048
+#define ASTEROIDS_STAGE_PHYS_OFFSET    0x800
+#define ASTEROIDS_STAGE_LAYOUT_MAGIC   0x32475453U /* "STG2" */
+
+static __init void asteroids_setup_session_clean(volatile u32 *p)
+{
+	asm volatile(
+		"dc cvac, %0\n"
+		"dsb sy\n"
+		:
+		: "r" (p)
+		: "memory");
+}
+
+static __init void asteroids_setup_session(void)
+{
+        volatile u32 *h;
+        volatile u32 *p;
+        volatile u32 *stage;
+
+        if (!asteroids_pmsg_va)
+                return;
+
+        h = (volatile u32 *)asteroids_pmsg_va;
+        p = h + ASTEROIDS_SESSION_HEADER_SIZE / sizeof(*p);
+
+        /*
+         * Keep secondary writes off the persistent_ram header's cache line.
+         *
+         * The stage pair lives at physical +0x800/+0x804.
+         */
+        stage = (volatile u32 *)
+                ((unsigned long)asteroids_pmsg_va +
+                 ASTEROIDS_STAGE_PHYS_OFFSET);
+
+        /*
+         * Invalidate header while constructing the new record.
+         */
+        WRITE_ONCE(h[0], 0);
+        WRITE_ONCE(h[1], 0);
+        WRITE_ONCE(h[2], 0);
+        asteroids_setup_session_clean(h);
+
+        /*
+         * Session identity.
+         *
+         * p[4]/p[5] are deliberately a layout identifier now, NOT
+         * the authoritative stage pair.
+         */
+        WRITE_ONCE(p[0], ASTEROIDS_SESSION_MAGIC);
+        WRITE_ONCE(p[1], ~ASTEROIDS_SESSION_MAGIC);
+        WRITE_ONCE(p[2], ASTEROIDS_SESSION_GENERATION);
+        WRITE_ONCE(p[3], ~ASTEROIDS_SESSION_GENERATION);
+        WRITE_ONCE(p[4], ASTEROIDS_STAGE_LAYOUT_MAGIC);
+        WRITE_ONCE(p[5], ~ASTEROIDS_STAGE_LAYOUT_MAGIC);
+        WRITE_ONCE(p[6], ASTEROIDS_SESSION_SEQUENCE);
+        WRITE_ONCE(p[7], ~ASTEROIDS_SESSION_SEQUENCE);
+        asteroids_setup_session_clean(p);
+
+        /*
+         * Authoritative stage pair on its own distant cache line.
+         */
+        WRITE_ONCE(stage[0], 0);
+        WRITE_ONCE(stage[1], ~0U);
+        asteroids_setup_session_clean(stage);
+
+        /*
+         * Export 2048 payload bytes so physical +0x800/+0x804 are
+         * included in a recovered pmsg record.
+         */
+        WRITE_ONCE(h[1], 0);
+        WRITE_ONCE(h[2], ASTEROIDS_SESSION_RECORD_SIZE);
+        asteroids_setup_session_clean(h);
+
+        /*
+         * Publish persistent_ram signature last.
+         */
+        WRITE_ONCE(h[0], 0x43474244U);
+        asteroids_setup_session_clean(h);
+}
+
+void asteroids_setup_mark(unsigned short marker)
+{
+        /*
+         * Legacy ASTEROIDS diagnostic writer disabled.
+         * Deterministic persistent_ram transport owns the pmsg record.
+         */
+        (void)marker;
+}
+
+void asteroids_setup_capture(unsigned int slot, u64 value)
+{
+        /*
+         * Legacy ASTEROIDS capture writer disabled.
+         * Keep the symbol and callers without touching persistent RAM.
+         */
+        (void)slot;
+        (void)value;
+}
+/* ASTEROIDS HIGHVA PMSG END */
+/* ASTEROIDS SETUP_ARCH PROBE HELPER END */
+
 void __init __no_sanitize_address setup_arch(char **cmdline_p)
 {
+	/* ASTEROIDS SETUP_ARCH PROBE 40 */
+	asteroids_setup_mark(0x3034);
+
 	setup_initial_init_mm(_stext, _etext, _edata, _end);
+
+	/* ASTEROIDS SETUP_ARCH PROBE 41 */
+	asteroids_setup_mark(0x3134);
 
 	*cmdline_p = boot_command_line;
 
 	kaslr_init();
 
 	early_fixmap_init();
+
+	/* ASTEROIDS SETUP_ARCH PROBE 42 */
+	asteroids_setup_mark(0x3234);
 	early_ioremap_init();
 
+	asteroids_setup_pmsg_remap();
+	asteroids_setup_session();
+
+	/* ASTEROIDS HIGHVA PMSG STAGE48 */
+	asteroids_setup_mark(0x3834);
+
+	/* ASTEROIDS SETUP_ARCH PROBE 43 */
+	asteroids_setup_mark(0x3334);
+
 	setup_machine_fdt(__fdt_pointer);
+
+	/* ASTEROIDS SETUP_ARCH PROBE 44 */
+	asteroids_setup_mark(0x3434);
 
 	/*
 	 * Initialise the static keys early as they may be enabled by the
 	 * cpufeature code and early parameters.
 	 */
+	/* ASTEROIDS PROBE33 55 - before jump_label_init */
+	asteroids_setup_mark(0x3535);
+
 	jump_label_init();
+
+	/* ASTEROIDS PROBE33 56 - after jump_label_init */
+	asteroids_setup_mark(0x3635);
+
+	/* ASTEROIDS HIGHVA PMSG STAGE49 */
+	asteroids_setup_mark(0x3934);
+	/* ASTEROIDS PROBE33 57 - before parse_early_param */
+	asteroids_setup_mark(0x3735);
+
 	parse_early_param();
+
+	/* ASTEROIDS PROBE33 58 - after parse_early_param */
+	asteroids_setup_mark(0x3835);
+
+	/* ASTEROIDS HIGHVA PMSG STAGE50 */
+	asteroids_setup_mark(0x3035);
 
 	dynamic_scs_init();
 
@@ -319,8 +482,14 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 	 */
 	cpu_uninstall_idmap();
 
+	/* ASTEROIDS HIGHVA PMSG STAGE51 */
+	asteroids_setup_mark(0x3135);
+
 	xen_early_init();
 	efi_init();
+
+	/* ASTEROIDS HIGHVA PMSG STAGE52 */
+	asteroids_setup_mark(0x3235);
 
 	if (!efi_enabled(EFI_BOOT)) {
 		if ((u64)_text % MIN_KIMG_ALIGN)
@@ -331,34 +500,121 @@ void __init __no_sanitize_address setup_arch(char **cmdline_p)
 
 	arm64_memblock_init();
 
+	/* ASTEROIDS HIGHVA PMSG STAGE53 */
+	asteroids_setup_mark(0x3335);
+
+	/* ASTEROIDS SETUP_ARCH PROBE 46 */
+	asteroids_setup_mark(0x3634);
+
+	/* ASTEROIDS SETUP_ARCH PROBE 47 */
+	asteroids_setup_mark(0x3734);
+
+	/* ASTEROIDS HIGHVA PMSG STAGE54 */
+	asteroids_setup_mark(0x3435);
+
 	paging_init();
+
+	/* ASTEROIDS PROBE34 59 */
+	asteroids_setup_mark(0x3935);
 
 	acpi_table_upgrade();
 
+	/* ASTEROIDS PROBE34 60 */
+	asteroids_setup_mark(0x3036);
+
 	/* Parse the ACPI tables for possible boot-time configuration */
 	acpi_boot_table_init();
+
+	/* ASTEROIDS PROBE34 61 */
+	asteroids_setup_mark(0x3136);
 
 	if (acpi_disabled)
 		unflatten_device_tree();
 
 	bootmem_init();
 
+	/* ASTEROIDS PROBE34 62 */
+	asteroids_setup_mark(0x3236);
+
 	kasan_init();
 
 	request_standard_resources();
 
+	/* ASTEROIDS PROBE34 63 */
+	asteroids_setup_mark(0x3336);
+
+	/* ASTEROIDS PROBE34 64 */
+	asteroids_setup_mark(0x3436);
+
+	/*
+	 * ASTEROIDS PROBE39 RELEASE EARLY PMSG
+	 *
+	 * asteroids_pmsg_va was obtained via early_memremap().
+	 * Release it before early_ioremap_reset() tears down/reset the
+	 * early fixmap machinery.
+	 */
+	/* ASTEROIDS PROBE40 BOUNDARY SPLIT */
+	asteroids_setup_mark(0x3536); /* "65" - immediately before old early mapping release */
+
+	if (asteroids_pmsg_va) {
+		early_memunmap(asteroids_pmsg_va, PAGE_SIZE);
+		asteroids_pmsg_va = NULL;
+	}
+
+	{
+		void *probe40_tmp;
+
+		probe40_tmp = early_memremap(0x82120000UL, PAGE_SIZE);
+		if (probe40_tmp) {
+			asteroids_pmsg_va = probe40_tmp;
+			asteroids_setup_mark(0x3636); /* "66" */
+
+			early_memunmap(probe40_tmp, PAGE_SIZE);
+			asteroids_pmsg_va = NULL;
+		}
+	}
+
+	/*
+	 * ASTEROIDS PROBE41 PERMANENT PMSG
+	 *
+	 * Unlike early_memremap(), this is a dedicated permanent fixmap
+	 * slot and must survive early_ioremap_reset().
+	 */
+	__set_fixmap(FIX_ASTEROIDS_PMSG,
+		     0x82120000UL,
+		     PAGE_KERNEL);
+
+	asteroids_pmsg_va =
+		(void *)fix_to_virt(FIX_ASTEROIDS_PMSG);
+
+	asteroids_setup_mark(0x3039); /* "90": permanent fixmap alive */
+
 	early_ioremap_reset();
+
+	/*
+	 * If this persists, early_ioremap_reset() returned and our
+	 * permanent fixmap survived it.
+	 */
+	asteroids_setup_mark(0x3139); /* "91" */
+
+
+
 
 	if (acpi_disabled)
 		psci_dt_init();
 	else
 		psci_acpi_init();
 
+	asteroids_setup_mark(0x3138); /* "81" */
+
 	arm64_rsi_init();
 
 	init_bootcpu_ops();
+	asteroids_setup_mark(0x3238); /* "82" */
 	smp_init_cpus();
+	asteroids_setup_mark(0x3338); /* "83" */
 	smp_build_mpidr_hash();
+	asteroids_setup_mark(0x3438); /* "84" */
 
 #ifdef CONFIG_ARM64_SW_TTBR0_PAN
 	/*

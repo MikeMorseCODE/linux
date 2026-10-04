@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""Validate the exporter-visible secondary bring-up commit in pmsg."""
+
+import argparse
+import struct
+import sys
+
+
+CHECKPOINTS = {0x5546: "__secondary_switched entry",
+               0x5547: "after finalise_el2",
+               0x5548: "before secondary_start_kernel"}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("record")
+    args = parser.parse_args()
+    data = open(args.record, "rb").read()
+
+    # The raw writer stores at physical +0x40/+0x44. Ramoops exports
+    # persistent_ram_buffer.data, which begins at physical +0x0c.
+    off = 0x40 - 0x0c
+    if len(data) < off + 8:
+        print(f"UNRECOVERABLE: record is {len(data)} bytes; need {off + 8}")
+        return 2
+
+    complement, marker = struct.unpack_from("<II", data, off)
+    expected = (~marker) & 0xffffffff
+    print(f"record_bytes={len(data)} offset=0x{off:x} "
+          f"complement=0x{complement:08x} marker=0x{marker:08x}")
+    if marker not in CHECKPOINTS or complement != expected:
+        print("UNRECOVERABLE: no valid checkpoint commit pair")
+        return 2
+
+    print(f"VALID: {CHECKPOINTS[marker]} (0x{marker:04x})")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

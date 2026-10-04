@@ -111,8 +111,8 @@ pmiv0104 @7 +-
 		 *   0x81f20000 + 2 MiB console
 		 *   0x82120000 + 2 MiB pmsg
 		 *
-		 * Asteroids intentionally uses the stock pmsg half as
-		 * its console so stock can recover it as pmsg-ramoops.
+		 * Asteroids uses the stock pmsg half as pmsg so stock can
+		 * recover the persistent_ram record as pmsg-ramoops.
 		 */
 		ramoops_stock_console_guard@81f20000 {
 			reg = <0x0 0x81f20000 0x0 0x00200000>;
@@ -122,7 +122,9 @@ pmiv0104 @7 +-
 		ramoops_mem@82120000 {
 			compatible = "ramoops";
 			reg = <0x0 0x82120000 0x0 0x00200000>;
-			console-size = <0x00200000>;
+			record-size = <0x00080000>;
+			console-size = <0x00100000>;
+			pmsg-size = <0x00080000>;
 			mem-type = <0x00>;
 			no-map;
 		};
@@ -224,6 +226,8 @@ pmiv0104 @7 +-
 &dispcc { status = "disabled"; };
 &videocc { status = "disabled"; };
 &gpucc { status = "disabled"; };
+&tsens0 { status = "okay"; };
+&tsens1 { status = "okay"; };
 
 &gpi_dma0 { };
 
@@ -337,6 +341,11 @@ pmiv0104 @7 +-
 };
 
 /* ASTEROIDS STOCK MEMORY MAP */
+&intc {
+	#redistributor-regions = <1>;
+	redistributor-stride = <0x0 0x40000>;
+};
+
 &{/memory@80000000} {
 	reg = <0x0 0x80e00000 0x0 0x00a00000>,
 	      <0x0 0x81cf5000 0x0 0x0000a000>,

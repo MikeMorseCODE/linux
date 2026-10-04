@@ -120,11 +120,19 @@ int __init set_handle_fiq(void (*handle_fiq)(struct pt_regs *))
 	return 0;
 }
 
+extern void asteroids_setup_mark(unsigned short marker);
+
 void __init init_IRQ(void)
 {
+	/* ASTEROIDS PROBE47 INIT_IRQ */
+	asteroids_setup_mark(0x3045); /* "E0" entered init_IRQ */
+
 	init_irq_stacks();
+	asteroids_setup_mark(0x3145); /* "E1" init_irq_stacks( returned */
 	init_irq_scs();
+	asteroids_setup_mark(0x3245); /* "E2" before irqchip_init */
 	irqchip_init();
+	asteroids_setup_mark(0x3345); /* "E3" irqchip_init returned */
 
 	if (system_uses_irq_prio_masking()) {
 		/*
@@ -134,4 +142,6 @@ void __init init_IRQ(void)
 		WARN_ON(read_sysreg(daif) & PSR_A_BIT);
 		local_daif_restore(DAIF_PROCCTX_NOIRQ);
 	}
+
+	asteroids_setup_mark(0x3545); /* "E5" init_IRQ completed */
 }

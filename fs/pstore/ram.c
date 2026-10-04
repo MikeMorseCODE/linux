@@ -40,9 +40,9 @@ void asteroids_boot_mark(const char *stage)
 	char record[96] = {};
 	unsigned int i;
 
-	if (task_pid_nr(current) != 1 ||
-	    !of_machine_is_compatible("nothing,asteroids"))
-		return;
+	if (task_pid_nr(current) > 1 ||
+            !of_machine_is_compatible("nothing,asteroids"))
+                return;
 	if (!buf) {
 		struct device_node *guard;
 		struct resource res;
@@ -56,14 +56,14 @@ void asteroids_boot_mark(const char *stage)
 		if (i || res.start != 0x81f20000 ||
 		    resource_size(&res) != SZ_2M)
 			return;
-		buf = ioremap(res.start, SZ_4K);
+		buf = ioremap(res.start, SZ_64K);
 		if (!buf)
 			return;
 		writel(0, buf + 4);
 		writel(0, buf + 8);
 		writel(0x43474244, buf);
 	}
-	if (used + sizeof(record) > SZ_4K - 12)
+	if (used + sizeof(record) > SZ_64K - 12)
 		return;
 
 	/* Prefix also tolerates readers with a 16-byte instead of 12-byte header. */

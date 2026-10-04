@@ -84,46 +84,19 @@
 	 */
 /* Temporary probe-04: known reserved stock console, MMU-off entry only. */
 	.macro asteroids_entry_mark stage
-	cbnz	x19, .Lasteroids_skip\@
-	movz	x9, #0x0000
-	movk	x9, #0x81f2, lsl #16
-	movz	w10, #0x4150
-	movk	w10, #0x2044, lsl #16
-	str	w10, [x9, #12]
-	movz	w10, #0x5341
-	movk	w10, #0x4554, lsl #16
-	str	w10, [x9, #16]
-	movz	w10, #0x4f52
-	movk	w10, #0x4449, lsl #16
-	str	w10, [x9, #20]
-	movz	w10, #0x2053
-	movk	w10, #0x7270, lsl #16
-	str	w10, [x9, #24]
-	movz	w10, #0x626f
-	movk	w10, #0x2d65, lsl #16
-	str	w10, [x9, #28]
-	movz	w10, #0x3430
-	movk	w10, #0x4520, lsl #16
-	str	w10, [x9, #32]
-	movz	w10, #0x544e
-	movk	w10, #0x5952, lsl #16
-	str	w10, [x9, #36]
-	movz	w10, #0x2020
-	movk	w10, #0x2020, lsl #16
-	str	w10, [x9, #40]
-	movz	w10, #\stage
-	movk	w10, #0x0a20, lsl #16
-	str	w10, [x9, #44]
-	mov	w10, #36
-	str	w10, [x9, #4]
-	str	w10, [x9, #8]
-	dsb	sy
-	movz	w10, #0x4244
-	movk	w10, #0x4347, lsl #16
-	str	w10, [x9]
-	dsb	sy
-.Lasteroids_skip\@:
+	mov	x17, x30
+	movz	w16, #\stage
+	bl	asteroids_entry_mark_write
+	mov	x30, x17
 	.endm
+
+SYM_CODE_START_LOCAL(asteroids_entry_mark_write)
+        /*
+         * Disabled: historical writer rewrote the deterministic pmsg
+         * header and payload during secondary CPU bring-up.
+         */
+        ret
+SYM_CODE_END(asteroids_entry_mark_write)
 
 SYM_CODE_START(primary_entry)
 	bl	record_mmu_state
@@ -137,6 +110,12 @@ SYM_CODE_START(primary_entry)
 	adrp	x0, init_idmap_pg_dir
 	mov	x1, xzr
 	bl	__pi_create_init_idmap
+	asteroids_entry_mark 0x3230	// 02: after create_init_idmap
+
+
+
+
+
 
 	/*
 	 * If the page tables have been populated with non-cacheable
@@ -162,7 +141,9 @@ SYM_CODE_START(primary_entry)
 	blr	x2
 
 1:	mov	x0, x19
+	asteroids_entry_mark 0x3330	// 03: after idmap cache maintenance
 	bl	init_kernel_el			// w0=cpu_boot_mode
+	asteroids_entry_mark 0x3430	// 04: after init_kernel_el
 	mov	x20, x0
 
 	/*
@@ -172,6 +153,8 @@ SYM_CODE_START(primary_entry)
 	 * the TCR will have been set.
 	 */
 	bl	__cpu_setup			// initialise processor
+	asteroids_entry_mark 0x3530	// 05: after __cpu_setup
+	asteroids_entry_mark 0x3630	// 06: before __primary_switch
 	b	__primary_switch
 SYM_CODE_END(primary_entry)
 
@@ -283,15 +266,51 @@ SYM_CODE_END(preserve_boot_args)
  *   x0 = __pa(KERNEL_START)
  */
 SYM_FUNC_START_LOCAL(__primary_switched)
+
+	/* ASTEROIDS PROBE21 STAGE20 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3032
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE21 STAGE20 END */
 	adr_l	x4, init_task
 	init_cpu_task x4, x5, x6
 
+	/* ASTEROIDS PROBE22 STAGE21 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3132
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE21 END */
+
 	adr_l	x8, vectors			// load VBAR_EL1 with virtual
 	msr	vbar_el1, x8			// vector table address
+
+	/* ASTEROIDS PROBE22 STAGE22 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3232
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE22 END */
 	isb
 
 	stp	x29, x30, [sp, #-16]!
 	mov	x29, sp
+
+	/* ASTEROIDS PROBE22 STAGE23 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3332
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE23 END */
 
 	str_l	x21, __fdt_pointer, x5		// Save FDT pointer
 
@@ -299,15 +318,51 @@ SYM_FUNC_START_LOCAL(__primary_switched)
 	sub	x4, x4, x0			// the kernel virtual and
 	str_l	x4, kimage_voffset, x5		// physical mappings
 
+	/* ASTEROIDS PROBE22 STAGE24 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3432
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE24 END */
+
 	mov	x0, x20
 	bl	set_cpu_boot_mode_flag
+
+	/* ASTEROIDS PROBE22 STAGE25 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3532
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE25 END */
 
 #if defined(CONFIG_KASAN_GENERIC) || defined(CONFIG_KASAN_SW_TAGS)
 	bl	kasan_early_init
 #endif
 	mov	x0, x20
 	bl	finalise_el2			// Prefer VHE if possible
+
+	/* ASTEROIDS PROBE22 STAGE26 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3632
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE26 END */
 	ldp	x29, x30, [sp], #16
+
+	/* ASTEROIDS PROBE22 STAGE27 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3732
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE22 STAGE27 END */
 	bl	start_kernel
 	ASM_BUG()
 SYM_FUNC_END(__primary_switched)
@@ -340,6 +395,7 @@ SYM_FUNC_START(init_kernel_el)
 SYM_INNER_LABEL(init_el1, SYM_L_LOCAL)
 	mov_q	x0, INIT_SCTLR_EL1_MMU_OFF
 	pre_disable_mmu_workaround
+
 	msr	sctlr_el1, x0
 	isb
 	mov_q	x0, INIT_PSTATE_EL1
@@ -418,16 +474,67 @@ SYM_FUNC_END(secondary_holding_pen)
 	 * be used where CPUs are brought online dynamically by the kernel.
 	 */
 SYM_FUNC_START(secondary_entry)
+	/* PROBE55: prove that PSCI reached the MMU-off secondary entry. */
+	mov	x17, x30
+	mov	x19, xzr
+	movz	w16, #0x5535
+	bl	asteroids_entry_mark_write
+	mov	x30, x17
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	movz	w10, #0x5535
+	str	w10, [x9, #0x100]
+	dsb	sy
 	mov	x0, xzr
 	bl	init_kernel_el			// w0=cpu_boot_mode
+	movz	w10, #0x5536
+	str	w10, [x9, #0x104]
+	dsb	sy
 	b	secondary_startup
 SYM_FUNC_END(secondary_entry)
+
+.macro asteroids_secondary_commit_mapped stage, complement
+        /*
+         * v6 isolation:
+         * no post-MMU persistent-RAM access.
+         *
+         * This determines whether our custom pmsg VA mapping itself
+         * is preventing secondary CPU bring-up.
+         */
+        .endm
+
+        .macro asteroids_secondary_commit_phys stage, complement
+        /*
+         * Authoritative pre-MMU stage line:
+         *
+         *     0x82120800 stage
+         *     0x82120804 ~stage
+         */
+        movz    x9, #0
+        movk    x9, #0x8212, lsl #16
+        add     x12, x9, #0x800
+        str     \complement, [x12, #4]
+        dc      cvac, x12
+        dsb     sy
+        str     \stage, [x12]
+        dc      cvac, x12
+        dsb     sy
+        .endm
 
 SYM_FUNC_START_LOCAL(secondary_startup)
 	/*
 	 * Common entry point for secondary CPUs.
 	 */
 	mov	x20, x0				// preserve boot mode
+        /* authoritative 0x5540: secondary_startup entered */
+        movz    w10, #0x5540
+        mvn     w11, w10
+        asteroids_secondary_commit_phys w10, w11
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	movz	w10, #0x5537
+	str	w10, [x9, #0x108]
+	dsb	sy
 
 #ifdef CONFIG_ARM64_VA_BITS_52
 alternative_if ARM64_HAS_VA52
@@ -435,16 +542,55 @@ alternative_if ARM64_HAS_VA52
 alternative_else_nop_endif
 #endif
 
+        /* authoritative 0x5541: before __cpu_setup */
+        movz    w10, #0x5541
+        mvn     w11, w10
+        asteroids_secondary_commit_phys w10, w11
 	bl	__cpu_setup			// initialise processor
+        /* authoritative 0x5542: __cpu_setup returned */
+        movz    w10, #0x5542
+        mvn     w11, w10
+        asteroids_secondary_commit_phys w10, w11
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	movz	w10, #0x5538
+	str	w10, [x9, #0x10c]
+	dsb	sy
 	adrp	x1, swapper_pg_dir
 	adrp	x2, idmap_pg_dir
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	movz	w10, #0x5539
+	str	w10, [x9, #0x110]
+	dsb	sy
+	/* Preserve the permanent pmsg fixmap VA and first commit words. */
+	movz	x19, #0x7000
+	movk	x19, #0xff5f, lsl #16
+	movk	x19, #0xffff, lsl #32
+	movk	x19, #0xffff, lsl #48
+	movz	w21, #0x5545
+	mvn	w22, w21
+	movz	w23, #0x5546
+	mvn	w24, w23
+	/* First pre-MMU operation before __enable_mmu: commit 0x5544. */
+        /* authoritative 0x5543: final pre-MMU checkpoint */
+        movz    w10, #0x5543
+        mvn     w11, w10
+        asteroids_secondary_commit_phys w10, w11
+	movz	w10, #0x5544
+	mvn	w11, w10
+	asteroids_secondary_commit_phys w10, w11
 	bl	__enable_mmu
+	/* First post-return operation: commit 0x5545. */
+	asteroids_secondary_commit_mapped w21, w22
 	ldr	x8, =__secondary_switched
 	br	x8
 SYM_FUNC_END(secondary_startup)
 
 	.text
 SYM_FUNC_START_LOCAL(__secondary_switched)
+	/* First operation after the BTI landing pad: commit 0x5546. */
+	asteroids_secondary_commit_mapped w23, w24
 	mov	x0, x20
 	bl	set_cpu_boot_mode_flag
 
@@ -455,17 +601,48 @@ SYM_FUNC_START_LOCAL(__secondary_switched)
 	adr_l	x5, vectors
 	msr	vbar_el1, x5
 	isb
+	/* 0x5547: VBAR_EL1 installation and ISB completed. */
+	movz	w21, #0x5547
+	mvn	w22, w21
+	asteroids_secondary_commit_mapped w21, w22
 
 	adr_l	x0, secondary_data
 	ldr	x2, [x0, #CPU_BOOT_TASK]
+	/* 0x5548: secondary_data.task was loaded successfully. */
+	movz	w21, #0x5548
+	mvn	w22, w21
+	asteroids_secondary_commit_mapped w21, w22
 	cbz	x2, __secondary_too_slow
 
-	init_cpu_task x2, x1, x3
+	msr	sp_el0, x2
+	ldr	x1, [x2, #TSK_STACK]
+	add	sp, x1, #THREAD_SIZE
+	sub	sp, sp, #PT_REGS_SIZE
+	/* 0x5549: stack-pointer installation complete, before stack stores. */
+	movz	w21, #0x5549
+	mvn	w22, w21
+	asteroids_secondary_commit_mapped w21, w22
+
+	stp	xzr, xzr, [sp, #S_STACKFRAME]
+	mov	x1, #FRAME_META_TYPE_FINAL
+	str	x1, [sp, #S_STACKFRAME_TYPE]
+	add	x29, sp, #S_STACKFRAME
+
+	scs_load_current
+
+	adr_l	x1, __per_cpu_offset
+	ldr	w3, [x2, #TSK_TI_CPU]
+	ldr	x1, [x1, x3, lsl #3]
+	set_this_cpu_offset x1
 
 #ifdef CONFIG_ARM64_PTR_AUTH
 	ptrauth_keys_init_cpu x2, x3, x4, x5
 #endif
 
+	/* 0x554a: immediately before entering secondary_start_kernel. */
+	movz	w21, #0x554a
+	mvn	w22, w21
+	asteroids_secondary_commit_mapped w21, w22
 	bl	secondary_start_kernel
 	ASM_BUG()
 SYM_FUNC_END(__secondary_switched)
@@ -571,18 +748,64 @@ SYM_FUNC_START_LOCAL(__no_granule_support)
 SYM_FUNC_END(__no_granule_support)
 
 SYM_FUNC_START_LOCAL(__primary_switch)
+	asteroids_entry_mark 0x3730	// 07: before __enable_mmu
 	adrp	x1, reserved_pg_dir
 	adrp	x2, init_idmap_pg_dir
 	bl	__enable_mmu
 
+	/* ASTEROIDS PROBE21 STAGE15 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3531
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE21 STAGE15 END */
+
 	adrp	x1, early_init_stack
 	mov	sp, x1
 	mov	x29, xzr
+
+	/* ASTEROIDS PROBE21 STAGE16 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3631
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE21 STAGE16 END */
 	mov	x0, x20				// pass the full boot status
 	mov	x1, x21				// pass the FDT
+
+	/* ASTEROIDS PROBE21 STAGE17 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3731
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE21 STAGE17 END */
 	bl	__pi_early_map_kernel		// Map and relocate the kernel
+
+	/* ASTEROIDS PROBE21 STAGE18 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3831
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE21 STAGE18 END */
 
 	ldr	x8, =__primary_switched
 	adrp	x0, KERNEL_START		// __pa(KERNEL_START)
+
+	/* ASTEROIDS PROBE21 STAGE19 BEGIN */
+	movz	x9, #0
+	movk	x9, #0x8212, lsl #16
+	mov	w10, #0x3931
+	strh	w10, [x9, #44]
+	dc	cvac, x9
+	dsb	sy
+	/* ASTEROIDS PROBE21 STAGE19 END */
 	br	x8
 SYM_FUNC_END(__primary_switch)

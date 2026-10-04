@@ -55,6 +55,9 @@
 
 #include <trace/events/ipi.h>
 
+extern void asteroids_boot_mark(const char *msg);
+extern void asteroids_setup_capture(unsigned int slot, u64 value);
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -108,9 +111,20 @@ static int boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
 	const struct cpu_operations *ops = get_cpu_ops(cpu);
 
-	if (ops->cpu_boot)
-		return ops->cpu_boot(cpu);
+	asteroids_setup_capture(0, cpu);
+	asteroids_setup_capture(1, cpu_logical_map(cpu));
+	asteroids_boot_mark("BOOTSEC before cpu_boot");
 
+	if (ops->cpu_boot) {
+		int ret = ops->cpu_boot(cpu);
+
+		asteroids_setup_capture(3, (u64)(s64)ret);
+		asteroids_boot_mark("BOOTSEC after cpu_boot");
+		return ret;
+	}
+
+	asteroids_setup_capture(3, (u64)(s64)-EOPNOTSUPP);
+	asteroids_boot_mark("BOOTSEC no cpu_boot");
 	return -EOPNOTSUPP;
 }
 
@@ -120,6 +134,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 {
 	int ret;
 	long status;
+	unsigned long wait_ret;
 
 	/*
 	 * We need to tell the secondary core where to find its stack and the
@@ -129,7 +144,9 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 	update_cpu_boot_status(CPU_MMU_OFF);
 
 	/* Now bring the CPU into our world */
+	asteroids_boot_mark("CPUUP before boot_secondary");
 	ret = boot_secondary(cpu, idle);
+	asteroids_boot_mark("CPUUP after boot_secondary");
 	if (ret) {
 		if (ret != -EPERM)
 			pr_err("CPU%u: failed to boot: %d\n", cpu, ret);
@@ -140,24 +157,60 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 	 * CPU was successfully started, wait for it to come online or
 	 * time out.
 	 */
-	wait_for_completion_timeout(&cpu_running,
-				    msecs_to_jiffies(5000));
-	if (cpu_online(cpu))
-		return 0;
+	wait_ret = wait_for_completion_timeout(&cpu_running,
+					       msecs_to_jiffies(5000));
 
-	pr_crit("CPU%u: failed to come online\n", cpu);
+	if (wait_ret)
+		asteroids_boot_mark("CPUUP WAIT COMPLETED");
+	else
+		asteroids_boot_mark("CPUUP WAIT TIMEOUT");
+	asteroids_setup_capture(4, 0x4350555557414954ULL);
+	asteroids_boot_mark("CPUUP after wait");
+        asteroids_setup_capture(5, cpu_online(cpu));
+
+        if (cpu_online(cpu)) {
+                asteroids_boot_mark("CPUUP ONLINE");
+                return 0;
+        }
+
+        asteroids_boot_mark("CPUUP OFFLINE");
+        pr_crit("CPU%u: failed to come online\n", cpu);
 	secondary_data.task = NULL;
 	status = READ_ONCE(secondary_data.status);
-	if (status == CPU_MMU_OFF)
+
+	if (status == CPU_MMU_OFF) {
+		asteroids_boot_mark("CPUUP STATUS INITIAL MMU_OFF");
 		status = READ_ONCE(__early_cpu_boot_status);
+
+		if (status == CPU_MMU_OFF)
+			asteroids_boot_mark("CPUUP STATUS STILL MMU_OFF");
+		else
+			asteroids_boot_mark("CPUUP STATUS EARLY CHANGED");
+	} else {
+		asteroids_boot_mark("CPUUP STATUS PRIMARY CHANGED");
+	}
+
+	{
+		char asteroids_status_mark[96];
+
+		scnprintf(asteroids_status_mark,
+			  sizeof(asteroids_status_mark),
+			  "CPUUP RAW STATUS 0x%016lx MASKED 0x%016lx",
+			  status,
+			  status & CPU_BOOT_STATUS_MASK);
+
+		asteroids_boot_mark(asteroids_status_mark);
+	}
 
 	switch (status & CPU_BOOT_STATUS_MASK) {
 	default:
+		asteroids_boot_mark("CPUUP CASE DEFAULT");
 		pr_err("CPU%u: failed in unknown state : 0x%lx\n",
 		       cpu, status);
 		cpus_stuck_in_kernel++;
 		break;
 	case CPU_KILL_ME:
+		asteroids_boot_mark("CPUUP CASE CPU_KILL_ME");
 		if (!op_cpu_kill(cpu)) {
 			pr_crit("CPU%u: died during early boot\n", cpu);
 			break;
@@ -165,6 +218,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 		pr_crit("CPU%u: may not have shut down cleanly\n", cpu);
 		fallthrough;
 	case CPU_STUCK_IN_KERNEL:
+		asteroids_boot_mark("CPUUP CASE CPU_STUCK_IN_KERNEL");
 		pr_crit("CPU%u: is stuck in kernel\n", cpu);
 		if (status & CPU_STUCK_REASON_52_BIT_VA)
 			pr_crit("CPU%u: does not support 52-bit VAs\n", cpu);
@@ -175,6 +229,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
 		cpus_stuck_in_kernel++;
 		break;
 	case CPU_PANIC_KERNEL:
+		asteroids_boot_mark("CPUUP CASE CPU_PANIC_KERNEL");
 		panic("CPU%u detected unsupported configuration\n", cpu);
 	}
 
@@ -206,6 +261,9 @@ asmlinkage notrace void secondary_start_kernel(void)
 	struct mm_struct *mm = &init_mm;
 	const struct cpu_operations *ops;
 	unsigned int cpu = smp_processor_id();
+
+	asteroids_setup_capture(4, cpu);
+	asteroids_boot_mark("SECONDARY entered");
 
 	/*
 	 * All kernel threads share the same mm context; grab a
@@ -261,8 +319,11 @@ asmlinkage notrace void secondary_start_kernel(void)
 					 cpu, (unsigned long)mpidr,
 					 read_cpuid_id());
 	update_cpu_boot_status(CPU_BOOT_SUCCESS);
+	asteroids_setup_capture(5, 0x53554343455353ULL);
+	asteroids_boot_mark("SECONDARY before complete");
 	set_cpu_online(cpu, true);
 	complete(&cpu_running);
+	asteroids_boot_mark("SECONDARY after complete");
 
 	/*
 	 * Secondary CPUs enter the kernel with all DAIF exceptions masked.

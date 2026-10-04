@@ -15,6 +15,8 @@
 #include <linux/irqchip.h>
 #include <linux/platform_device.h>
 
+extern void asteroids_setup_mark(unsigned short marker);
+
 /*
  * This special of_device_id is the sentinel at the end of the
  * of_device_id[] array of all irqchips. It is automatically placed at
@@ -28,7 +30,14 @@ extern struct of_device_id __irqchip_of_table[];
 
 void __init irqchip_init(void)
 {
+	/* ASTEROIDS PROBE48 IRQCHIP */
+	asteroids_setup_mark(0x3046); /* "F0" entered irqchip_init */
+
+	asteroids_setup_mark(0x3146); /* "F1" before of_irq_init */
 	of_irq_init(__irqchip_of_table);
+	asteroids_setup_mark(0x3246); /* "F2" of_irq_init returned */
+	asteroids_setup_mark(0x3346);
+	asteroids_setup_mark(0x3446); /* "F4" ACPI irqchip probe returned */ /* "F3" before ACPI irqchip probe */
 	acpi_probe_device_table(irqchip);
 }
 

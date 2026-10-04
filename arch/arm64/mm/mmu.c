@@ -799,15 +799,118 @@ void __pi_map_range(u64 *pgd, u64 start, u64 end, u64 pa, pgprot_t prot,
 static u8 idmap_ptes[IDMAP_LEVELS - 1][PAGE_SIZE] __aligned(PAGE_SIZE) __ro_after_init,
 	  kpti_ptes[IDMAP_LEVELS - 1][PAGE_SIZE] __aligned(PAGE_SIZE) __ro_after_init;
 
+extern void asteroids_setup_mark(unsigned short marker);
+extern void *asteroids_pmsg_va;
+
 static void __init create_idmap(void)
 {
 	u64 start = __pa_symbol(__idmap_text_start);
 	u64 end   = __pa_symbol(__idmap_text_end);
 	u64 ptep  = __pa_symbol(idmap_ptes);
 
+
+	/* ASTEROIDS PROBE37 RUNTIME IDMAP INPUTS BEGIN */
+	{
+		volatile u64 *ast_log =
+			(volatile u64 *)((unsigned long)asteroids_pmsg_va + 0x500);
+
+		ast_log[0] = start;
+		ast_log[1] = end;
+		ast_log[2] = ptep;
+		ast_log[3] = pgprot_val(PAGE_KERNEL_ROX);
+		ast_log[4] = __phys_to_virt(ptep) - ptep;
+		ast_log[5] = (u64)arm64_use_ng_mappings;
+
+		/*
+		 * +0x500 is cache-line aligned and all six qwords
+		 * fit inside the same 64-byte line.
+		 */
+		asm volatile(
+			"dc cvac, %0\n"
+			"dsb sy\n"
+			:
+			: "r" (ast_log)
+			: "memory");
+	}
+	/* ASTEROIDS PROBE37 RUNTIME IDMAP INPUTS END */
+
+	
+	/* ASTEROIDS PROBE38 IDMAP PERMS BEGIN */
+	{
+		unsigned long root_va = (unsigned long)idmap_pg_dir;
+		unsigned long ptep_va = (unsigned long)__phys_to_virt(ptep);
+		unsigned long root_par_r, root_par_w;
+		unsigned long ptep_par_r, ptep_par_w;
+		unsigned long root0 = 0;
+
+		volatile u64 *ast_log =
+			(volatile u64 *)((unsigned long)asteroids_pmsg_va + 0x500);
+
+		asm volatile(
+			"at s1e1r, %1\n"
+			"isb\n"
+			"mrs %0, par_el1\n"
+			: "=r" (root_par_r)
+			: "r" (root_va)
+			: "memory");
+
+		asm volatile(
+			"at s1e1w, %1\n"
+			"isb\n"
+			"mrs %0, par_el1\n"
+			: "=r" (root_par_w)
+			: "r" (root_va)
+			: "memory");
+
+		asm volatile(
+			"at s1e1r, %1\n"
+			"isb\n"
+			"mrs %0, par_el1\n"
+			: "=r" (ptep_par_r)
+			: "r" (ptep_va)
+			: "memory");
+
+		asm volatile(
+			"at s1e1w, %1\n"
+			"isb\n"
+			"mrs %0, par_el1\n"
+			: "=r" (ptep_par_w)
+			: "r" (ptep_va)
+			: "memory");
+
+		if (!(root_par_r & 1))
+			root0 = *(volatile u64 *)root_va;
+
+		ast_log[0] = root_va;
+		ast_log[1] = ptep;
+		ast_log[2] = ptep_va;
+		ast_log[3] = root_par_r;
+		ast_log[4] = root_par_w;
+		ast_log[5] = ptep_par_r;
+		ast_log[6] = ptep_par_w;
+		ast_log[7] = root0;
+
+		asm volatile(
+			"dc cvac, %0\n"
+			"dsb sy\n"
+			:
+			: "r" (ast_log)
+			: "memory");
+
+		/* Permission diagnostics completed. */
+		asteroids_setup_mark(0x3537); /* "75" */
+	}
+	/* ASTEROIDS PROBE38 IDMAP PERMS END */
+
+	/* ASTEROIDS PROBE36 70 - before first idmap mapping */
+	asteroids_setup_mark(0x3037);
+
 	__pi_map_range(&ptep, start, end, start, PAGE_KERNEL_ROX,
 		       IDMAP_ROOT_LEVEL, (pte_t *)idmap_pg_dir, false,
 		       __phys_to_virt(ptep) - ptep);
+
+	/* ASTEROIDS PROBE36 71 - first mapping returned */
+	asteroids_setup_mark(0x3137);
 
 	if (IS_ENABLED(CONFIG_UNMAP_KERNEL_AT_EL0) && !arm64_use_ng_mappings) {
 		extern u32 __idmap_kpti_flag;
@@ -818,20 +921,48 @@ static void __init create_idmap(void)
 		 * of its synchronization flag in the ID map.
 		 */
 		ptep = __pa_symbol(kpti_ptes);
+		/* ASTEROIDS PROBE36 72 - before KPTI mapping */
+		asteroids_setup_mark(0x3237);
+
 		__pi_map_range(&ptep, pa, pa + sizeof(u32), pa, PAGE_KERNEL,
 			       IDMAP_ROOT_LEVEL, (pte_t *)idmap_pg_dir, false,
 			       __phys_to_virt(ptep) - ptep);
+
+		/* ASTEROIDS PROBE36 73 - KPTI mapping returned */
+		asteroids_setup_mark(0x3337);
 	}
+
+	/* ASTEROIDS PROBE36 74 - create_idmap complete */
+	asteroids_setup_mark(0x3437);
 }
+
+
+/* ASTEROIDS PROBE35 PAGING */
 
 void __init paging_init(void)
 {
+	/* 65: entered paging_init */
+	asteroids_setup_mark(0x3536);
+
 	map_mem(swapper_pg_dir);
+
+	/* 66: map_mem returned */
+	asteroids_setup_mark(0x3636);
 
 	memblock_allow_resize();
 
+	/* 67: memblock_allow_resize returned */
+	asteroids_setup_mark(0x3736);
+
 	create_idmap();
+
+	/* 68: create_idmap returned */
+	asteroids_setup_mark(0x3836);
+
 	declare_kernel_vmas();
+
+	/* 69: declare_kernel_vmas returned */
+	asteroids_setup_mark(0x3936);
 }
 
 #ifdef CONFIG_MEMORY_HOTPLUG

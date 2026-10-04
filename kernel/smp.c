@@ -35,6 +35,8 @@
 #include "smpboot.h"
 #include "sched/smp.h"
 
+extern void asteroids_boot_mark(const char *msg);
+
 #define CSD_TYPE(_csd)	((_csd)->node.u_flags & CSD_FLAG_TYPE_MASK)
 
 struct call_function_data {
@@ -1000,14 +1002,21 @@ void __init setup_nr_cpu_ids(void)
 /* Called by boot processor to activate the rest. */
 void __init smp_init(void)
 {
+	/* ASTEROIDS SMP SPLIT */
 	int num_nodes, num_cpus;
 
+	asteroids_boot_mark("SMP 01 before idle_threads_init");
 	idle_threads_init();
+	asteroids_boot_mark("SMP 02 after idle_threads_init");
+	asteroids_boot_mark("SMP 03 before cpuhp_threads_init");
 	cpuhp_threads_init();
+	asteroids_boot_mark("SMP 04 after cpuhp_threads_init");
 
 	pr_info("Bringing up secondary CPUs ...\n");
 
+	asteroids_boot_mark("SMP 05 before bringup_nonboot_cpus");
 	bringup_nonboot_cpus(setup_max_cpus);
+	asteroids_boot_mark("SMP 06 after bringup_nonboot_cpus");
 
 	num_nodes = num_online_nodes();
 	num_cpus  = num_online_cpus();
@@ -1015,7 +1024,9 @@ void __init smp_init(void)
 		num_nodes, str_plural(num_nodes), num_cpus, str_plural(num_cpus));
 
 	/* Any cleanup work */
+	asteroids_boot_mark("SMP 07 before smp_cpus_done");
 	smp_cpus_done(setup_max_cpus);
+	asteroids_boot_mark("SMP 08 after smp_cpus_done");
 }
 
 /*

@@ -21,6 +21,9 @@
 #include <asm/errno.h>
 #include <asm/smp_plat.h>
 
+extern void asteroids_boot_mark(const char *msg);
+extern void asteroids_setup_capture(unsigned int slot, u64 value);
+
 static int __init cpu_psci_cpu_init(unsigned int cpu)
 {
 	return 0;
@@ -39,7 +42,16 @@ static int __init cpu_psci_cpu_prepare(unsigned int cpu)
 static int cpu_psci_cpu_boot(unsigned int cpu)
 {
 	phys_addr_t pa_secondary_entry = __pa_symbol(secondary_entry);
-	int err = psci_ops.cpu_on(cpu_logical_map(cpu), pa_secondary_entry);
+	unsigned long mpidr = cpu_logical_map(cpu);
+	int err;
+
+	asteroids_setup_capture(0, cpu);
+	asteroids_setup_capture(1, mpidr);
+	asteroids_setup_capture(2, pa_secondary_entry);
+	asteroids_boot_mark("PSCI before CPU_ON");
+	err = psci_ops.cpu_on(mpidr, pa_secondary_entry);
+	asteroids_setup_capture(3, (u64)(s64)err);
+	asteroids_boot_mark("PSCI after CPU_ON");
 	if (err && err != -EPERM)
 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
 
@@ -121,4 +133,3 @@ const struct cpu_operations cpu_psci_ops = {
 	.cpu_kill	= cpu_psci_cpu_kill,
 #endif
 };
-

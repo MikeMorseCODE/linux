@@ -28,6 +28,8 @@
 
 #include "of_private.h"
 
+extern void asteroids_setup_mark(unsigned short marker);
+
 /**
  * irq_of_parse_and_map - Parse and map an interrupt into linux virq space
  * @dev: Device node of the device whose interrupt is to be mapped
@@ -557,6 +559,9 @@ struct of_intc_desc {
  */
 void __init of_irq_init(const struct of_device_id *matches)
 {
+	/* ASTEROIDS PROBE48 OF_IRQ */
+	asteroids_setup_mark(0x3047); /* "G0" entered of_irq_init */
+
 	const struct of_device_id *match;
 	struct device_node *np, *parent = NULL;
 	struct of_intc_desc *desc, *temp_desc;
@@ -625,8 +630,10 @@ void __init of_irq_init(const struct of_device_id *matches)
 			pr_debug("of_irq_init: init %pOF (%p), parent %p\n",
 				 desc->dev,
 				 desc->dev, desc->interrupt_parent);
+			asteroids_setup_mark(0x3147); /* "G1" before irq_init_cb */
 			ret = desc->irq_init_cb(desc->dev,
 						desc->interrupt_parent);
+			asteroids_setup_mark(0x3247); /* "G2" irq_init_cb returned */
 			if (ret) {
 				pr_err("%s: Failed to init %pOF (%p), parent %p\n",
 				       __func__, desc->dev, desc->dev,
