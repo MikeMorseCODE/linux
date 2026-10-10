@@ -1,0 +1,77 @@
+name: Build Linux 7.2 for Nothing Asteroids
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "milos-mainline/linux branch, tag, or commit"
+        required: true
+        default: "milos-7.2.y"
+  push:
+    branches:
+      - wip-next-20250417
+    paths:
+      - .github/workflows/build-asteroids-linux-7.2.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asteroids-linux-7.2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Image and Asteroids DTB
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out 7.2 kernel source
+        uses: actions/checkout@v4
+        with:
+          repository: milos-mainline/linux
+          ref: ${{ inputs.source_ref || 'milos-7.2.y' }}
+          path: kernel
+          fetch-depth: 1
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            bc bison build-essential cpio flex libelf-dev libssl-dev \
+            clang dwarves lld llvm python3 rsync
+
+      - name: Configure arm64 Qualcomm build
+        run: |
+          make -C kernel O="$GITHUB_WORKSPACE/out" ARCH=arm64 LLVM=1 defconfig
+          kernel/scripts/config --file out/.config --enable ARCH_QCOM
+          make -C kernel O="$GITHUB_WORKSPACE/out" ARCH=arm64 LLVM=1 olddefconfig
+          grep -E '^(CONFIG_ARCH_QCOM|CONFIG_OF)=' out/.config
+
+      - name: Build kernel image and Nothing Asteroids device tree
+        run: |
+          make -C kernel O="$GITHUB_WORKSPACE/out" ARCH=arm64 LLVM=1 \
+            -j"$(nproc)" Image qcom/milos-nothing-asteroids.dtb
+          test -s out/arch/arm64/boot/Image
+          test -s out/arch/arm64/boot/dts/qcom/milos-nothing-asteroids.dtb
+
+      - name: Collect build outputs
+        run: |
+          mkdir -p artifacts
+          cp out/arch/arm64/boot/Image artifacts/
+          cp out/arch/arm64/boot/dts/qcom/milos-nothing-asteroids.dtb artifacts/
+          cp out/.config artifacts/kernel.config
+          git -C kernel rev-parse HEAD > artifacts/source-commit.txt
+          {
+            echo "source=milos-mainline/linux"
+            echo "ref=${{ inputs.source_ref || 'milos-7.2.y' }}"
+            echo "built_at=$(date -u +%FT%TZ)"
+          } > artifacts/build-info.txt
+
+      - name: Upload bring-up artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: asteroids-linux-7.2-bringup
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
