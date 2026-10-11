@@ -22,9 +22,9 @@ concurrency:
 
 jobs:
   build:
-    name: Build Image and Asteroids DTB
+    name: Build boot image and Asteroids DTB
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Check out 7.2 kernel source
         uses: actions/checkout@v4
@@ -38,15 +38,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            bc bison build-essential cpio flex libelf-dev libssl-dev \
-            clang dwarves lld llvm python3 rsync
+            bc bison build-essential cpio flex gcc-aarch64-linux-gnu \
+            libelf-dev libssl-dev clang dwarves lld llvm python3 rsync
 
-      - name: Configure arm64 Qualcomm build
+      - name: Configure arm64 Qualcomm boot support
         run: |
           make -C kernel O="$GITHUB_WORKSPACE/out" ARCH=arm64 LLVM=1 defconfig
-          kernel/scripts/config --file out/.config --enable ARCH_QCOM
+          kernel/scripts/config --file out/.config \
+            --enable ARCH_QCOM \
+            --enable BLK_DEV_INITRD \
+            --enable FB_SIMPLE \
+            --enable FRAMEBUFFER_CONSOLE \
+            --enable DEVTMPFS \
+            --enable DEVTMPFS_MOUNT \
+            --enable SERIAL_QCOM_GENI_CONSOLE \
+            --enable SCSI_UFS_QCOM \
+            --enable PHY_QCOM_QMP_UFS
           make -C kernel O="$GITHUB_WORKSPACE/out" ARCH=arm64 LLVM=1 olddefconfig
-          grep -E '^(CONFIG_ARCH_QCOM|CONFIG_OF)=' out/.config
+          grep -E '^(CONFIG_ARCH_QCOM|CONFIG_BLK_DEV_INITRD|CONFIG_FB_SIMPLE|CONFIG_SCSI_UFS_QCOM|CONFIG_PHY_QCOM_QMP_UFS)=' out/.config
 
       - name: Build kernel image and Nothing Asteroids device tree
         run: |
@@ -55,23 +64,85 @@ jobs:
           test -s out/arch/arm64/boot/Image
           test -s out/arch/arm64/boot/dts/qcom/milos-nothing-asteroids.dtb
 
-      - name: Collect build outputs
+      - name: Build a minimal ARM64 BusyBox initramfs
         run: |
+          git clone --depth 1 --branch 1_36_1 https://github.com/mirror/busybox.git busybox
+          make -C busybox ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- defconfig
+          sed -i 's/^# CONFIG_STATIC is not set/CONFIG_STATIC=y/' busybox/.config
+          make -C busybox ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j"$(nproc)" busybox
+          file busybox/busybox
+          mkdir -p initramfs/{bin,dev,proc,sys,tmp}
+          cp busybox/busybox initramfs/bin/busybox
+          ln -s busybox initramfs/bin/sh
+          sudo mknod initramfs/dev/console c 5 1
+          sudo mknod initramfs/dev/null c 1 3
+          chmod 755 initramfs/bin/busybox
+          cat > initramfs/init <<'EOF'
+          #!/bin/sh
+          mount -t proc proc /proc
+          mount -t sysfs sysfs /sys
+          echo
+          echo "Nothing Phone (3a) Pro / Linux 7.2"
+          echo "ASTEROIDS_LINUX_7.2_INITRAMFS_OK"
+          echo "Minimal BusyBox userspace reached. Type 'poweroff' to reboot."
+          exec /bin/busybox sh -i </dev/console >/dev/console 2>&1
+          EOF
+          chmod 755 initramfs/init
+          (cd initramfs && find . -print0 | sort -z | cpio --null -o -H newc --quiet | gzip -9n) > initramfs.cpio.gz
+          test -s initramfs.cpio.gz
+
+      - name: Package Android boot image v4
+        run: |
+          git clone --depth 1 https://android.googlesource.com/platform/system/tools/mkbootimg mkbootimg
           mkdir -p artifacts
+          python3 mkbootimg/mkbootimg.py \
+            --kernel out/arch/arm64/boot/Image \
+            --ramdisk initramfs.cpio.gz \
+            --dtb out/arch/arm64/boot/dts/qcom/milos-nothing-asteroids.dtb \
+            --header_version 4 \
+            --pagesize 4096 \
+            --os_version 0.0.0 \
+            --os_patch_level 2026-10 \
+            --cmdline "console=tty0 console=ttyMSM0,115200n8 earlycon loglevel=8 ignore_loglevel nokaslr" \
+            --output artifacts/asteroids-linux-7.2-boot.img
+          test -s artifacts/asteroids-linux-7.2-boot.img
+          test "$(head -c 8 artifacts/asteroids-linux-7.2-boot.img)" = "ANDROID!"
+
+      - name: Collect build outputs and provenance
+        run: |
           cp out/arch/arm64/boot/Image artifacts/
           cp out/arch/arm64/boot/dts/qcom/milos-nothing-asteroids.dtb artifacts/
           cp out/.config artifacts/kernel.config
+          cp initramfs.cpio.gz artifacts/
           git -C kernel rev-parse HEAD > artifacts/source-commit.txt
           {
             echo "source=milos-mainline/linux"
             echo "ref=${{ inputs.source_ref || 'milos-7.2.y' }}"
             echo "built_at=$(date -u +%FT%TZ)"
+            echo "boot_image_format=Android boot header v4"
+            echo "userspace=minimal static ARM64 BusyBox initramfs"
+            echo "boot_method=temporary fastboot boot; no partition flashing"
           } > artifacts/build-info.txt
+          cat > artifacts/README.txt <<'EOF'
+          Nothing Phone (3a) Pro / Asteroids — Linux 7.2 bring-up image
 
-      - name: Upload bring-up artifacts
+          asteroids-linux-7.2-boot.img is an Android boot-header-v4 image containing
+          the Linux kernel, the milos-nothing-asteroids device tree, and a minimal
+          BusyBox initramfs. The initramfs prints ASTEROIDS_LINUX_7.2_INITRAMFS_OK
+          and starts an interactive shell on the console.
+
+          This tests kernel startup through PID 1. It is not an Android-compatible
+          daily-driver image, does not mount Android data, and does not validate
+          device-specific hardware. The intended first test is temporary boot:
+          fastboot boot asteroids-linux-7.2-boot.img
+          It is not an OTA or recovery-flashable ZIP.
+          EOF
+          (cd artifacts && sha256sum Image milos-nothing-asteroids.dtb kernel.config initramfs.cpio.gz asteroids-linux-7.2-boot.img build-info.txt README.txt > SHA256SUMS)
+
+      - name: Upload bootable bring-up artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: asteroids-linux-7.2-bringup
+          name: asteroids-linux-7.2-bootable-bringup
           path: artifacts/
           if-no-files-found: error
           retention-days: 14
