@@ -1,0 +1,19 @@
+# Device package for experimental Nura/postmarketOS A059P port.
+# Verified: Linux 7.3 through UniXNU; fbdev 1080x2392; GPIO; USB ACM+ECM.
+# No independently bootable postmarketOS image exists yet.
+deviceinfo_format_version="0"
+deviceinfo_name="Nothing Phone (3a) Pro"
+deviceinfo_manufacturer="Nothing"
+deviceinfo_codename="nothing-asteroidspro"
+deviceinfo_year="2025"
+deviceinfo_arch="aarch64"
+deviceinfo_chassis="handset"
+deviceinfo_external_storage="false"
+deviceinfo_drm="false"
+
+# The UniXNU / Android boot-image handoff has NOT been integrated with
+# postmarketOS boot-deploy. Do not generate or flash a boot image.
+deviceinfo_flash_method="none"
+deviceinfo_generate_bootimg="false"
+deviceinfo_flash_kernel_on_update="false"
+deviceinfo_dev_internal_storage_repartition="false"
