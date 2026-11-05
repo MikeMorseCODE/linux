@@ -1,0 +1,31 @@
+# Experimental bring-up scaffold; NOT flashable or independently bootable.
+# FIXME before upstreaming: maintainer and validated kernel package/deps.
+pkgname=device-nothing-asteroidspro
+pkgdesc="Nothing Phone (3a) Pro (A059P) experimental Nura device metadata"
+pkgver=0
+pkgrel=0
+url="https://nura.eco"
+license="MIT"
+arch="aarch64"
+options="!check !archcheck"
+# Intentionally no kernel package: original Linux 7.3 kernel lives in a
+# separate UniXNU EFI payload whose packaging remains unresolved.
+depends="postmarketos-base"
+makedepends="devicepkg-dev"
+source="
+	deviceinfo
+	kernel-cmdline.conf
+"
+
+build() {
+	devicepkg_build "$startdir" "$pkgname"
+}
+
+package() {
+	devicepkg_package "$startdir" "$pkgname"
+}
+
+sha512sums="
+62ec9adbc3f4f8882808ea0c05fdfebc638afa7177e9ab4037d05039cf6ceb69977c3011a929c80ee9e69f1275568e6b5670e1c635f568047cd3dbf53feeebea  deviceinfo
+80c6010201b91ebdb238d3ebb788a286bef896a50fe2b5f38b923352e2d5637dad2921a2f1f21aa929d87d903e1e5c6e63fbc7a41677d87e419554f7e5f1702e  kernel-cmdline.conf
+"
