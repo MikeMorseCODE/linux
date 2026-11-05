@@ -1,0 +1,3 @@
+# Exact command line observed in working UniXNU -> Linux 7.3 BusyBox boot.
+# REFERENCE ONLY, not appropriate to copy unmodified into a pmOS initramfs:
+console=tty0 earlycon=efifb log_buf_len=4M acpi=off loglevel=4 printk.time=1 clk_ignore_unused pd_ignore_unused regulator_ignore_unused maxcpus=1 cpuidle.off=1 iommu.passthrough=0 rdinit=/init panic=0 nokaslr
