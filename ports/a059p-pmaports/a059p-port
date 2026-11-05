@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Host-only A059P port metadata helper. Intentionally does not invoke flash/boot."""
+import hashlib, os, pathlib, re, shutil, sys
+
+HOME = pathlib.Path(__file__).resolve().parent
+SOURCE = HOME / 'device/testing/device-nothing-asteroidspro'
+EXPECTED = 'fdd1d848f2d6aedf251aa73fb5e27cddf14467cf244b26130c3afa81fb2b59b7'
+
+def sha(path, algo):
+    h = hashlib.new(algo)
+    with path.open('rb') as file:
+        for block in iter(lambda: file.read(1024 * 1024), b''):
+            h.update(block)
+    return h.hexdigest()
+
+def check():
+    pkg = (SOURCE / 'APKBUILD').read_text()
+    assert re.search(r'^pkgname=device-nothing-asteroidspro$', pkg, re.MULTILINE), 'pmbootstrap cannot find column-0 pkgname declaration'
+    assert 'deviceinfo_flash_method="none"' in (SOURCE / 'deviceinfo').read_text()
+    assert 'deviceinfo_generate_bootimg="false"' in (SOURCE / 'deviceinfo').read_text()
+    assert 'deviceinfo_flash_kernel_on_update="false"' in (SOURCE / 'deviceinfo').read_text()
+    assert 'rdinit=' not in (SOURCE / 'kernel-cmdline.conf').read_text()
+    for name in ('deviceinfo', 'kernel-cmdline.conf'):
+        digest = sha(SOURCE / name, 'sha512')
+        assert digest + '  ' + name in pkg, 'APKBUILD checksum mismatch: ' + name
+    print('PASS: device metadata checksums, nonflash flags, and cmdline safeguards')
+
+def main():
+    if len(sys.argv)<2 or sys.argv[1] not in ('verify','stage'):
+        print('Usage: ./a059p-port verify [known-good-console.img] | stage /path/to/pmaports',file=sys.stderr)
+        return 2
+    check()
+    if sys.argv[1] == 'verify':
+        if len(sys.argv) == 3:
+            source=pathlib.Path(sys.argv[2]).expanduser()
+            if not source.is_file():
+                print('ERROR: baseline file not found: '+str(source),file=sys.stderr)
+                return 1
+            got=sha(source,'sha256')
+            if got != EXPECTED:
+                print('ERROR: baseline SHA256 mismatch! Expected '+EXPECTED+' got '+got,file=sys.stderr)
+                return 1
+            print('PASS: known-good console.img SHA256 '+got)
+        else:
+            print('Optional: pass the known-good console.img file path to verify its SHA256.')
+        return 0
+    if len(sys.argv) != 3:
+        print('ERROR: stage requires the existing pmaports root directory.',file=sys.stderr)
+        return 2
+    base=pathlib.Path(sys.argv[2]).expanduser().resolve()
+    if not (base / 'device').is_dir():
+        print('ERROR: not an initialized pmaports tree (missing device/): '+str(base),file=sys.stderr)
+        return 1
+    target=base / 'device/testing/device-nothing-asteroidspro'
+    if target.exists():
+        print('ERROR: target exists, refusing to overwrite: '+str(target),file=sys.stderr)
+        return 1
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copytree(SOURCE,target)
+    print('STAGED: '+str(target))
+    print('Next (host-only): pmbootstrap config device nothing-asteroidspro')
+    print('Next (host-only): pmbootstrap checksum device-nothing-asteroidspro')
+    print('Next (host-only): pmbootstrap build -i device-nothing-asteroidspro')
+    return 0
+if __name__=='__main__':
+    sys.exit(main())
